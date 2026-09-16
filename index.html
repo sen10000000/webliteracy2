@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webリテラシー 一問一答学習アプリ</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --text: #334155;
+            --card-bg: #ffffff;
+            --correct: #16a34a;
+            --incorrect: #dc2626;
+            --border: #e2e8f0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; background-color: var(--bg); color: var(--text); line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; }
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { font-size: 1.5rem; color: var(--primary); }
+        .card { background: var(--card-bg); border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin-bottom: 20px; flex-grow: 1; }
+        
+        .btn { display: block; width: 100%; padding: 14px; margin: 10px 0; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; transition: all 0.2s; font-weight: bold; text-align: center; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+        .btn-outline:hover { background: var(--primary); color: #fff; }
+        .btn-option { background: var(--bg); color: var(--text); text-align: left; border: 2px solid var(--border); font-weight: normal; }
+        .btn-option:hover { background: #e2e8f0; border-color: #cbd5e1; }
+        .btn-danger { background: var(--incorrect); color: #fff; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .btn-back { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 0.9rem; font-weight: bold; padding: 0; margin-right: 15px; }
+        .btn-back:hover { color: var(--primary-hover); text-decoration: underline; }
+
+        .hidden { display: none !important; }
+        
+        /* Menu Styles */
+        .mode-section { margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+        .mode-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .mode-title { font-size: 1.1rem; margin-bottom: 12px; font-weight: bold; color: var(--text); }
+        .chapter-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
+        .checkbox-label { display: flex; align-items: center; background: var(--bg); padding: 10px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; }
+        .checkbox-label input { margin-right: 8px; }
+
+        /* Quiz Styles */
+        .quiz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 0.9rem; color: #64748b; }
+        .quiz-header-right { display: flex; align-items: center; gap: 10px; }
+        .badge-correct { background: #dcfce7; color: var(--correct); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
+        .badge-wrong { background: #fee2e2; color: var(--incorrect); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
+        .question-text { font-size: 1.1rem; margin-bottom: 20px; font-weight: bold; }
+        
+        /* List Styles */
+        .list-item { padding: 12px; margin-bottom: 10px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; background: #fff; transition: all 0.2s; text-align: left; display: block; width: 100%; font-family: inherit; }
+        .list-item:hover { background: #f1f5f9; border-color: #cbd5e1; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+        /* Result Styles */
+        .feedback { margin-top: 20px; padding: 20px; border-radius: 8px; animation: fadeIn 0.3s ease-in; }
+        .feedback.correct { background: #f0fdf4; border: 1px solid #bbf7d0; }
+        .feedback.incorrect { background: #fef2f2; border: 1px solid #fecaca; }
+        .feedback-title { font-size: 1.3rem; font-weight: bold; margin-bottom: 10px; }
+        .feedback.correct .feedback-title { color: var(--correct); }
+        .feedback.incorrect .feedback-title { color: var(--incorrect); }
+        .explanation { margin-top: 10px; color: #475569; font-size: 0.95rem; white-space: pre-wrap;}
+        
+        .score-display { text-align: center; font-size: 2rem; font-weight: bold; color: var(--primary); margin: 20px 0; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Webリテラシー 一問一答</h1>
+        </header>
+
+        <!-- メニュー画面 -->
+        <div id="menu-view" class="card">
+            <div class="mode-section">
+                <div class="mode-title">📖 章別学習モード</div>
+                <div class="chapter-grid">
+                    <label class="checkbox-label"><input type="checkbox" value="1" class="chap-check" checked> 第1章</label>
+                    <label class="checkbox-label"><input type="checkbox" value="2" class="chap-check"> 第2章</label>
+                    <label class="checkbox-label"><input type="checkbox" value="3" class="chap-check"> 第3章</label>
+                    <label class="checkbox-label"><input type="checkbox" value="4" class="chap-check"> 第4章</label>
+                    <label class="checkbox-label"><input type="checkbox" value="5" class="chap-check"> 第5章</label>
+                    <label class="checkbox-label"><input type="checkbox" value="6" class="chap-check"> 第6章</label>
+                </div>
+                <button type="button" class="btn btn-primary" onclick="startChapterMode()">選択した章を学習する</button>
+            </div>
+
+            <div class="mode-section">
+                <div class="mode-title">📝 模擬試験モード</div>
+                <button type="button" class="btn btn-outline" onclick="startMockMode()">模擬試験 (全85問) を開始</button>
+            </div>
+
+            <div class="mode-section">
+                <div class="mode-title">📋 問題一覧モード</div>
+                <button type="button" class="btn btn-outline" onclick="showQuestionList()">問題一覧から選んで学習する</button>
+            </div>
+
+            <div class="mode-section">
+                <div class="mode-title">🔄 復習モード</div>
+                <p style="font-size: 0.9rem; margin-bottom: 10px;">間違えた問題: <span id="mistake-count">0</span>問</p>
+                <button type="button" id="btn-review" class="btn btn-danger" onclick="startReviewMode()">間違えた問題を復習する</button>
+            </div>
+        </div>
+
+        <!-- 問題一覧画面 -->
+        <div id="list-view" class="card hidden">
+            <div class="quiz-header">
+                <button type="button" class="btn-back" onclick="returnToMenuFromList(event)">← トップメニューに戻る</button>
+            </div>
+            <h2 style="margin-bottom: 20px; color: var(--primary);">📋 問題一覧</h2>
+            <div id="question-list-container"></div>
+        </div>
+
+        <!-- クイズ画面 -->
+        <div id="quiz-view" class="card hidden">
+            <div class="quiz-header">
+                <button type="button" id="btn-back-header" class="btn-back" onclick="returnToMenuFromQuiz(event)">← トップメニューに戻る</button>
+                <div class="quiz-header-right">
+                    <span id="chapter-qnum-text" style="font-weight:bold; color:var(--primary); margin-right:8px;"></span>
+                    <span id="progress-text">1 / 10</span>
+                </div>
+            </div>
+            <div style="margin-bottom: 15px; display: flex; gap: 10px;">
+                <span id="stats-badge-correct" class="badge-correct">正解: 0回</span>
+                <span id="stats-badge-wrong" class="badge-wrong">間違い: 0回</span>
+            </div>
+            <div id="question-text" class="question-text"></div>
+            
+            <!-- 画像表示エリア -->
+            <div id="question-image-container" class="hidden" style="margin-bottom: 20px; text-align: center;">
+                <img id="question-image" src="" alt="問題の図" style="max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 8px;">
+            </div>
+
+            <div id="options-container"></div>
+
+            <div id="feedback-container" class="feedback hidden">
+                <div id="feedback-title" class="feedback-title"></div>
+                <div style="font-weight: bold; margin-bottom: 8px;">正解: <span id="correct-answer-text"></span></div>
+                <div id="explanation-text" class="explanation"></div>
+                
+                <button type="button" id="btn-mastered" class="btn btn-outline hidden" onclick="markAsMastered()" style="margin-top: 15px;">✅ 復習完了（誤答記録をリセット）</button>
+                <button type="button" id="btn-next" class="btn btn-primary" onclick="nextQuestion()" style="margin-top: 15px;">次の問題へ ➔</button>
+                <button type="button" id="btn-back-to-list" class="btn btn-outline hidden" onclick="returnToList(event)" style="margin-top: 15px;">← 問題一覧に戻る</button>
+            </div>
+        </div>
+
+        <!-- 結果画面 -->
+        <div id="result-view" class="card hidden">
+            <h2 style="text-align: center;">学習完了！</h2>
+            <div id="score-display" class="score-display">8 / 10</div>
+            <p id="result-message" style="text-align: center; margin-bottom: 20px;"></p>
+            <button type="button" class="btn btn-primary" onclick="returnToMenu(event)">トップメニューへ戻る</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 問題データ ---
+        const quizData = [            // 第1章
+            {id: "c1_q1", type: "exercise", chapter: 1, text: "インターネットの普及を大きく前進させるきっかけとなったOSは、次のどれか。", options: ["Mac OS X", "Windows 98", "Windows 95", "Linux"], answer: 2, explanation: "1995年に、Microsoft から Windows 95 が発売され、インターネットが商用サービスとして普及する契機となる。このOSにはインターネットに接続するためのTCP/IP 機能が備わっており、家庭用のコンピュータでインターネットにアクセスできる条件が揃うこととなった。また、インターネットサービスプロバイダ (ISP) が続々と誕生し、ユーザーが爆発的に増加した。"},
+            {id: "c1_q2", type: "exercise", chapter: 1, text: "インターネット、WWW、Eメールに関する説明として正しいと考えられるのは、次のどれか。", options: ["インターネット: TCP/IP 上で動くプロトコルである HTTPを利用してテキストや画像、音声などのデータを転送する\nWWW: さまざまな場所にある異なるコンピュータをつなぎ合わせたネットワーク\nEメール: データの送受信にSMTPとPOPというプロトコルが使われるのが一般的", "インターネット: さまざまな場所にある異なるコンピュータをつなぎ合わせたネットワーク\nWWW: TCP/IP上で動くプロトコルであるHTTPを利用してテキストや画像、音声などのデータを転送する\nEメール: データの送受信にSMTPとPOPというプロトコルが使われるのが一般的", "インターネット: TCP/IP上で動くプロトコルである HTTP を利用してテキストや画像、音声などのデータを転送する\nWWW: データの送受信にSMTPとPOPというプロトコルが使われるのが一般的\nEメール: さまざまな場所にある異なるコンピュータをつなぎ合わせたネットワーク", "インターネット: データの送受信にSMTPとPOPというプロトコルが使われるのが一般的\nWWW: TCP/IP上で動くプロトコルであるHTTPを利用してテキストや画像、音声などのデータを転送する\nEメール: さまざまな場所にある異なるコンピュータをつなぎ合わせたネットワーク"], answer: 1, explanation: "インターネットは「さまざまな場所にある異なるコンピュータをつなぎ合わせたネットワーク」自体であり、WWWやEメールなどが利用できる土壌である。WWWは「TCP/IP 上で動くプロトコルである HTTP を利用してテキストや画像、音声などのデータを転送する」、Eメールは「データの送受信にSMTPとPOP というプロトコルが使われるのが一般的」という仕組みである。"},
+            {id: "c1_q3", type: "exercise", chapter: 1, text: "DNSに関する説明として正しいのは、次のどれか。", options: ["インターネット上に置かれているデータの場所を示したもの", "ネットワークにつながれたコンピュータに一意に割り振られた、12桁からなる数字の組み合わせ", "サーバーに対して特定のサービスの要求を行い、その提供を受けるようなコンピュータやアプリケーションソフトウェア", "IPアドレスを人間にとって分かりやすい文字列に変換する仕組み"], answer: 3, explanation: "DNS (Domain Name System) とは 「IPアドレスを人間にとって分かりやすい文字列に変換する仕組み」である。IPアドレスは、ネットワークにつながれたコンピュータに一意に割り振られた、12桁からなる数字の組み合わせであり、そのままでは人間にとって利用しづらいため、DNS という仕組みが必要とされる。"},
+            {id: "c1_q4", type: "exercise", chapter: 1, text: "Web ブラウザに関する以下の文章について、空欄(A) (B) (C)に当てはまる言葉の正しい組み合わせは、次のどれか。\n「2003年にAppleが( A )を発表し、Mac OS Xの標準ブラウザとして搭載されるようになる。(A)は、iPhoneやiPadにも標準で搭載されている。このブラウザで採用されたレンダリングエンジン(B)はオープンソースであり、後に発表されたWeb ブラウザ (C)でもしばらく採用されていた。」", options: ["A: Safari B: WebKit C: Google Chrome", "A: Safari B: WebKit C: Firefox", "A: Safari B: Gecko C: Firefox", "A: Firefox B: Gecko C: Google Chrome"], answer: 0, explanation: "2003年に Appleが「Safari」を発表し、Mac OS Xの標準ブラウザとして搭載されるようになる。Safariは、iPhoneやiPad にも標準で搭載されている。このブラウザで採用されたレンダリングエンジン 「WebKit」はオープンソースであり、後に発表された Web ブラウザ「Google Chrome」 でもしばらく採用されていた。"},
+            {id: "c1_q5", type: "exercise", chapter: 1, text: "スマートフォンやタブレットなどモバイル端末でのブラウジングを想定したWebサイト制作について、誤りと考えられる説明は次のどれか。", options: ["スマートフォンは、パソコンと比べて画面が小さい、移動中にも閲覧や操作がなされる、通信速度が遅い環境もありうる、といった特徴がある", "タブレットはパソコン並みの画面解像度を備えた端末が多いため、通常はパソコン向けと同じビジュアルデザインやユーザーインターフェイスを提供する", "レスポンシブWebデザインとは、パソコンとタブレットなど比較的大きな画面向けの Webサイトと、スマートフォン向けのサイトを別々に提供する方法である", "ユーザーエージェント分岐とは、サーバー側またはJavaScriptで、デバイスの種類やブラウザ名をもとに処理を変える方法である"], answer: 2, explanation: "レスポンシブ Webデザインとは、すべてのデバイスに対して同一の Web サイトを提供しつつ、CSS や JavaScript で表示や動作を調整する方法である。"},
+            {id: "c1_q6", type: "exercise", chapter: 1, text: "サーバーの構成に関する以下の図について、空欄(A) (B) (C) (D)に当てはまる言葉の正しい組み合わせは、次のどれか。", image: "image_0502f0.png", options: ["A: Webサーバー B: FTPサーバー C: DNSサーバー D: SMTPサーバー", "A: SMTPサーバー B: Webサーバー C: DNSサーバー D: FTPサーバー", "A: FTPサーバー B: Webサーバー C: DNSサーバー D: SMTPサーバー", "A: Webサーバー B: SMTPサーバー C: DNSサーバー D: FTPサーバー"], answer: 3, explanation: "HTMLの配信に関するのは Web サーバー、Eメールの送信に関するのはSMTP サーバー、ドメイン名の解決に関するのはDNSサーバー、ファイルの転送に関するのはFTP サーバーである。"},
+            {id: "c1_q7", type: "exercise", chapter: 1, text: "インターネットの問題点に関する説明として正しいのは、次のどれか。", options: ["セキュリティホールとは、コンピューターにアンチウイルスソフトをインストールしていない状態を指す", "ブログであれば、他人の書いた文章を過度に引用しても問題はない", "誰もが情報発信者となれるのがインターネットであり、情報の真偽を保障してくれる機関や仕組みはない", "現在では、フィルタリングソフトによって、未成年者に有害な情報を完全にブロックできる"], answer: 2, explanation: "誰もが情報発信者となれるのがインターネットであり、情報の真偽を保障してくれる機関や仕組みはない。"},
+            {id: "c1_q8", type: "exercise", chapter: 1, text: "インターネットでの著作権侵害につながる恐れのある「自炊」の説明として正しいのは、次のどれか。", options: ["ユーザーのIPアドレス・ホスト名を隠匿し、HTTP通信を行うこと", "書籍や漫画本を自分でデジタルデータ化すること", "自らは匿名でありながら、特定の人間への誹謗中傷する書き込みを繰り返すこと", "他者のIDやパスワードをインターネット掲示板などで共有すること"], answer: 1, explanation: "自炊とは「書籍や漫画本を自分でデジタルデータ化すること」である。電子書籍の普及によって、いっそう容易になったといえる。デジタルデータ化した著作物を個人で利用すること自体は問題とはならないが、他者に共有したり、他者がダウンロードできる状態にしておくことで、著作権を侵害する可能性がある。"},
+            {id: "c1_q9", type: "exercise", chapter: 1, text: "2023年7月に施行された改正刑法と性的姿態撮影等処罰法で禁止していることの説明として誤りと考えられるのは、次のどれか。", options: ["16歳未満の子どもとわいせつ目的で会うこと", "16歳未満の子どもに性的な写真や動画を送るように要求すること", "他人の性的な部位や下着などを相手の同意なく撮影したり、盗撮したりすること", "他人の性的な部位や下着などを撮影したものを閲覧すること"], answer: 3, explanation: "2023年7月に施行された改正刑法と性的姿態撮影等処罰法では、「16歳未満の子どもとわいせつ目的で会うこと」「16歳未満の子どもに性的な写真や動画を送るように要求すること」「他人の性的な部位や下着などを相手の同意なく撮影したり、盗撮したりすること」などを禁止している。「他人の性的な部位や下着などを撮影したものを閲覧すること」は禁止していない。"},
+            {id: "c1_q10", type: "exercise", chapter: 1, text: "2004年にアメリカのマーク・ザッカーバーグ氏が始めたソーシャル・ネットワーキング・サービス(SNS)は、次のどれか。", options: ["X(旧Twitter)", "Instagram", "LinkedIn", "Facebook"], answer: 3, explanation: "2004年にアメリカのマーク・ザッカーバーグ氏が始めたソーシャル・ネットワーキング・サービス(SNS)は「Facebook」である。2023年現在、全世界で29億8,900万人の月間アクティブユーザー数を抱えるまでになっている。"},
+            {id: "c1_q11", type: "exercise", chapter: 1, text: "Webでのコミュニケーションに関する文章として正しいと考えられるのは、次のどれか。", options: ["インターネットが普及する前は、リアルの場で打ち合わせや会話を重ねることで距離を近づけるしかなかったが、現在ではソーシャルメディアを通じて、互いの近況や趣味嗜好を知ることができ、実際に会わなくても精神的な距離を近づけることが可能である", "ブログやソーシャルメディアなどのCGM (Consumer-Generated Media、消費者生成メディア)によって、従来よりも圧倒的に多くの情報に触れられるようになったが、一般的に人気のないニッチな商品に関する情報を見つけたり、同じ趣味の人とつながることは難しい", "写真や動画の撮影機能やGPS機能と、パソコン並みの処理能力を備えたスマートフォンやタブレットが登場したが、高品質な写真や動画を即座にインターネット上に公開するには通信環境がまだ追いついていない", "EC事業者がクチコミやレビューといったユーザーの力を利用し、マスプロモーション手法では行き届かないニッチ商品の販促を行い、売り上げを高める取り組みは成立しないのが現状である"], answer: 0, explanation: "従来のEメールはもちろん、チャットなどのリアルタイムのコミュニケーションツール、グループウェアやプロジェクト管理ツールなどのクラウドサービスの利便性が向上し、ワークスタイルや業務効率化の在り方も変化している。このような変化には、ソーシャルメディアでのつながりによって、精神的な距離の近さが保たれていることが大きく関係している。"},
+            {id: "c1_q12", type: "exercise", chapter: 1, text: "インターネット広告費の算出方式である「PPC」の説明として正しいのは、次のどれか。", options: ["ユーザーがコンバージョンを達成した際に費用が発生する方式", "ユーザーが広告をクリックするごとに費用が発生する方式", "ユーザーに広告が表示されるごとに費用が発生する方式", "ポータルサイトやニュースサイトで記事として広告が配信されたときに費用が発生する方式"], answer: 1, explanation: "PPC (Pay Per Click)は、広告主がクリック単価上限を決定し、ユーザーが広告をクリックするごとに費用が発生する方式。リスティング広告などで幅広く採用されている。"},
+            {id: "c1_q13", type: "exercise", chapter: 1, text: "広告配信に関する以下の文章について、空欄(A) (B)に当てはまる言葉の正しい組み合わせは、次のどれか。\n「ユーザーのサイト訪問歴、年齢や性別、地域などの属性を元に配信する広告を変化させることを(A)という。特に、サイト訪問歴に基づく特定ユーザーへの広告配信を(B)という。」", options: ["A: リマーケティング B: 行動ターゲティング", "A: アトリビューション B: リマーケティング", "A: 行動ターゲティング B: リマーケティング", "A: 行動ターゲティング B: アトリビューション"], answer: 2, explanation: "ユーザーのサイト訪問歴、年齢や性別、地域などの属性を元に配信する広告を変化させることを「行動ターゲティング」という。特に、サイト訪問歴に基づく特定ユーザーへの広告配信を「リマーケティング」という。"},
+            {id: "c1_q14", type: "exercise", chapter: 1, text: "ストリーミングで動画を配信するのに適さないと考えられるのは、次のどれか。", options: ["討論番組の録画放送", "株主説明会の生放送", "地方で開催されている町おこしのイベント中継", "アーティストのコンサート中継"], answer: 0, explanation: "ストリーミング動画配信は、2000年前後から、さまざまな生放送やライブなどの中継番組に利用されている。一方、録画した番組であれば、ストリーミングによって映像をリアルタイムで配信する必要はない。"},
+            {id: "c1_q15", type: "exercise", chapter: 1, text: "Webマーケティングにおける「インフルエンサー」の説明として正しいのは、次のどれか。", options: ["広告において、モデルとしてよく利用され、購買意欲を高める効果のある人物", "SNSにおいて、フォロワー数が多く、ユーザーに対する影響力が大きい人物", "アフィリエイトにおいて、商品やサービスの説明力が高く、売上の獲得に貢献する人物", "広報において、マスコミとの関係づくりが巧みであり、作成したプレスリリースがメディアに取り上げられやすい担当者"], answer: 1, explanation: "インフルエンサーとは、主にSNSにおいて、フォロワー数が多く、ユーザーに対する影響力が大きい人物(アカウント) のこと。SNS 別に「インスタグラマー」や「ユーチューバー」などと呼ばれることもある。芸能人や著名人にはない、素人っぽさや等身大の内容が支持される理由のひとつである。"},
+            
+            // 第2章
+            {id: "c2_q16", type: "exercise", chapter: 2, text: "媒体別広告費の推移を示した以下の図について、空欄(A) (B) (C) (D)に当てはまる言葉の正しい組み合わせは、次のどれか。", image: "image_05032e.png", options: ["A: インターネット B: テレビ C: 新聞 D: 雑誌", "A: インターネット B: テレビ C: 雑誌 D: 新聞", "A: テレビ B: インターネット C: 新聞 D: 雑誌", "A: テレビ B: インターネット C: 雑誌 D: 新聞"], answer: 0, explanation: "インターネット広告の市場規模は2014年に1兆円を、2019年に2兆円を超え、2022年には3兆912億円に達し、広告市場全体の43.5%を占めている (電通「2022年(令和4年)日本の広告費」より)。対前年比は114.3%で、20年近くにわたって高い伸び率を維持している。驚異的に成長するインターネットは、2004年にラジオの、2007年には雑誌の、2009年には新聞の、そして2019年にはついにテレビの広告市場規模を超えた。"},
+            {id: "c2_q17", type: "exercise", chapter: 2, text: "多様化するインターネットビジネスの手法に関する説明として誤りと考えられるものは、次のどれか。", options: ["近年では既存の産業でもインターネット化の取り組みが進み、今やインターネットを活用していない業種を見つけるほうが難しい", "かつてはインターネット業界で新しいビジネスモデルを打ち立てた企業を指して「ドットコム企業」と呼んでいたが、現在ではインターネット業界と他の業界を明確に区別できる境界線は消失している", "広告主と広告媒体を取り次ぐ業務として「広告代理業務」があるが、運用代行業務と制作代行業務の両方を請け負う企業の登場が待たれている", "インターネット上では、成果を定量的に測定する手法のため、これらを活用してよりよいユーザー体験(UX)を提供すること、その後のアクションにつなげることが大切である"], answer: 2, explanation: "広告代理業務とは、広告主と広告媒体を取り次ぐ業務である。単に取り次ぎを行うだけでなく、広告主の目的に沿った適切な媒体の組み合わせや比重配分を考えたり、広告としての効果を最大に高めるメッセージやプロモーションの提案をしたりする。このように、運用代行業務と制作代行業務の両方を担当する企業が多数ある。"},
+            {id: "c2_q18", type: "exercise", chapter: 2, text: "インターネットのビジネスモデルとして一般的な「フリーミアムモデル」の説明として誤りと考えられるのは、次のどれか。", options: ["基本サービスを無料無償で提供し、高度な機能や特別な機能を有償で提供するモデル", "アップセルとして上位機能の有償利用をうながす", "クロスセルとして別の機能の有償利用をうながす", "パソコン向けのサービスやアプリで広く採用されているモデルであり、スマートフォン向けのサービスやアプリではほぼ採用されていない"], answer: 3, explanation: "フリーミアムモデルとは、基本サービスを無料無償で提供し、高度な機能や特別な機能を有償で提供するビジネスモデルである。例えば、スマートフォン向けゲームアプリで、アプリそのものは無償で提供しながら、「アイテム課金」などで収益化を図るのも、フリーミアムモデルに基づいている。"},
+            {id: "c2_q19", type: "exercise", chapter: 2, text: "電子商取引に関する以下の文章が意味するのは、次のどれか。\n「電子商取引が消費者同士の間で行われることを指す。例としては、インターネットオークションでの取引や、個人がWebサイトで行っているデジタルデータのダウンロード販売、個人開発者のソフトウェア販売、インターネットショップ上での消費者同士の中古品売買などが挙げられる。2022年度の市場規模は2兆3,630億円である。」", options: ["B2C モデル", "B2Bモデル", "C2Cモデル", "B2B2Cモデル"], answer: 2, explanation: "C2Cは「Consumer to Consumer」の略であり、電子商取引が消費者同士の間で行われることを指す。厳密にはこのモデルでは、法人が用意した取引の場や、決済のための仲介業者が必要となるなど、純粋に消費者同士で成立するモデルではないことが多い。"},
+            {id: "c2_q20", type: "exercise", chapter: 2, text: "インターネット時代の消費行動を示す「AISCEAS」に含まれる2つの「S」に当てはまるのは、次のどれか。", options: ["Search Share", "Safe Share", "Search Success", "Strict Score"], answer: 0, explanation: "AISCEAS はアンヴィコミュニケーションズが提唱した、インターネット時代の消費行動モデルである。Attention(注意)、Interest (関心)、Search(検索)、Comparison(比較)、Examination (検討)、Action (購買/行動)、Share (共有)の頭文字を組み合わせたもの。"},
+            {id: "c2_q21", type: "exercise", chapter: 2, text: "インターネットにおけるデータ活用の仕組みである「Web API」の説明として正しいのは、次のどれか。", options: ["APIは Application Protocol Information の略である", "あるWebサイトで保有している情報を、別のサイトでも利用できるようにするための取り決めである", "企業サイトのアクセス情報にGoogleマップを埋め込むには、NAVITIME APIを利用する", "APIはすべて無償で提供することとなっており、有償で提供することは認められない"], answer: 1, explanation: "Web API (Application Programming Interface)は、あるWebサイトで保有している情報を、別のサイトでも利用できるようにするための取り決めである。例えば、企業サイトのアクセス情報にGoogleマップを埋め込むには、Google Maps APIを利用する。API は無償のものあれば、有償のものもある。"},
+            {id: "c2_q22", type: "exercise", chapter: 2, text: "モバイルインターネットの進展に関する以下の文章が意味するのは、次のどれか。\n「インターネットやスマートフォンの普及で消費者との接点が増える中、事業としてどのように対応するかを考え、取り組むことが大切である。具体的には、実店舗はもちろん、デバイスの種類や、媒体としてのWebサイトやソーシャルメディアといったチャネルを問わず、あらゆる場所で顧客との接点や販売機会を用意したり、成果をトータルで把握することが大切である。」", options: ["シングルチャネル", "マルチチャネル", "オムニチャネル", "クリック&モルタル"], answer: 2, explanation: "オムニチャネルとは、顧客との「すべての接点」のこと。実店舗はもちろん、デバイスの種類や、媒体としての Web サイトやソーシャルメディアといったチャネルを問わず、あらゆる場所で顧客との接点や販売機会を用意したり、成果をトータルで把握する取り組みを指す。"},
+            {id: "c2_q23", type: "exercise", chapter: 2, text: "スマートフォンアプリのストアを通じた収益化手段に当てはまらないものは、次のどれか。", options: ["アプリ内課金", "有償販売", "サブスクリプション", "ソースコードの公開"], answer: 3, explanation: "スマートフォンアプリのストアを通じた収益化手段は、アプリ内課金、有償販売(ダウンロード)、サブスクリプション (月額課金や年額課金)などである。ソースコードの公開は収益化手段には該当しない。"},
+            {id: "c2_q24", type: "exercise", chapter: 2, text: "スマートフォンアプリの開発のため、各ベンダーから提供される開発ツールを意味する言葉は、次のどれか。", options: ["API", "Feed", "IDE", "SDK"], answer: 3, explanation: "SDK (Software Development Kit) は 「ソフトウェア開発キット」とも呼ばれ、ソフトウェアパッケージ、ゲームなどのアプリケーションを作成するために、ソフトウェア技術者が使用する開発ツールである。iPhoneやiPad 用ではアップルから 「Xcode」が、Andoroid OS 用ではグーグルから 「Android Studio」が提供され、広く利用されている。"},
+            {id: "c2_q25", type: "exercise", chapter: 2, text: "ウェアラブルデバイスのひとつとして、Appleから2015年4月に発売されたスマートウォッチは、次のどれか。", options: ["iWatch", "Apple Watch", "Android Watch", "Tizen Watch"], answer: 1, explanation: "Apple から 2015年4月に発売されたスマートウォッチは 「Apple Watch」である。ウェアラブルデバイスの普及によって、IoT (Internet of Things) やビッグデータと連携した、より「パーソナライズ」されたコンテンツ配信が進むと予想される。"},
+            {id: "c2_q26", type: "exercise", chapter: 2, text: "電子書籍のフォーマットに関する説明として誤りと考えられるのは、次のどれか。", options: ["リフロー型は、デバイスや表示領域によって文字サイズや改行位置が柔軟に変更される形式である", "非リフロー型は、レイアウトそのものを保持したい場合や、画像や図表などのビジュアルが重要な出版物に適した形式である", "EPUBに対応している電子書籍ストアは少なく、PDFに対応しているストアがほとんどである", "EPUB に基づく電子書籍の制作にあたって、日本電子書籍出版社協会から「電書協EPUB 3 制作ガイド」が出されている"], answer: 2, explanation: "日本でEPUBに対応している電子書籍ストアには、Amazon Kindle、Apple Books、Google Play ブックス、楽天Kobo、honto(大日本印刷)などがある。ユーザーはこれらのストアでコンテンツを購入し、専用のアプリを通して直接ダウンロードすることで、電子書籍を利用できる。"},
+            {id: "c2_q27", type: "exercise", chapter: 2, text: "コーポレートコミュニケーションにおいて、IRに該当するのは、次のどれか。", options: ["企業を取り巻く社会とコミュニケーションを行い、公的な信頼と理解を獲得しようとする取り組み", "四半期ごと、半期、通年の業績報告や財務情報の公開、実施事業の外的環境の動向を含めた見通しなどを迅速かつ適切に報告すること", "事業を行う組織とその構成員の相互理解のために、構成員がその組織体に属していることで、その事業を続ける誇りを持つこと、存在意義を理解すること、組織の一員としてどのようにふるまうべきかを自覚することをうながす取り組み", "コーポレートアイデンティティ (CI、 Corporate Identity) やクリエイティブ(広告)のガイドライン制定といったビジュアル面での取り組み"], answer: 1, explanation: "IR (Investor Relations)には、四半期ごと、半期、通年の業績報告や財務情報の公開、実施事業の外的環境の動向を含めた見通しなどを迅速かつ適切に報告するなどの活動が含まれる。Webサイトの構築にあたってはCMS (Content Management System) を導入し、情報公開を速やかに行うのが一般的である。"},
+            {id: "c2_q28", type: "exercise", chapter: 2, text: "企業を含むあらゆる組織の社会的責任を基準化した国際規格は、次のどれか。", options: ["ISO 14001", "ISO 14000", "ISO 26000", "ISO 9000"], answer: 2, explanation: "企業活動のグローバル化や国際競争の中で、CSR はコーポレートコミュニケーションに密接に関わるようになっており、ISO(国際標準化機構) によって「社会的責任」の呼称で「ISO 26000」が2010年11月1日に発行された。このような流れの中で、CSR活動をインターネットを活用しながら実施する企業が増えている。"},
+            {id: "c2_q29", type: "exercise", chapter: 2, text: "企業のブランディングとCSRに関する以下の文章について、空欄(A)(B)に当てはまる言葉の正しい組み合わせは、次のどれか。\n「Webサイトを通じてCSR活動を報告したり、地域社会や持続可能社会に貢献するコンテンツを運営するなど、その方法は多岐にわたる。近年では(A)や(B)という言葉で、同様の活動や、さらに世界標準を意識した活動を行う企業が多い。」", options: ["A: アイデンティティ B: LTV", "A: サスティナビリティ B: LTV", "A: アイデンティティ B: SDGs", "A: サスティナビリティ B: SDGs"], answer: 3, explanation: "Web サイトを通じてCSR活動を報告したり、地域社会や持続可能社会に貢献するコンテンツを運営するなど、その方法は多岐にわたる。近年では「サスティナビリティ」や「SDGs」という言葉で、同様の活動や、さらに世界標準を意識した活動を行う企業が多い。"},
+            {id: "c2_q30", type: "exercise", chapter: 2, text: "EC ビジネスに関する以下の文章について、空欄(A) (B)に当てはまる言葉の正しい組み合わせは、次のどれか。\n「ECビジネスを行うには、店舗となる Web サイトの運営や集客だけでなく、商品計画や品揃えを意味する(A)、また、物流、受注、決済、配送、アフターフォローなどの(B)が必要となる。」", options: ["A: マーチャンダイジング B: フルフィルメント", "A: フルフィルメント B: マーチャンダイジング", "A: ドロップシッピング B: フルフィルメント", "A: フルフィルメント B: ドロップシッピング"], answer: 0, explanation: "EC ビジネスを行うには、店舗となる Web サイトの運営や集客だけでなく、商品計画や品揃えを意味する「マーチャンダイジング」、また、物流、受注、決済、配送、アフターフォローなどの「フルフィルメント」が必要となる。"},
+            {id: "c2_q31", type: "exercise", chapter: 2, text: "インターネット関連法規に関する以下の文章は、次のどの法律を説明したものか。\n「申し込み完了前に、ユーザーが申し込み内容を確認できる措置を講じなければならないことを規定している。具体的には、申し込みボタンをクリック後、申し込みの意思表示となる確認画面を設け、ユーザーの意思によって修正できる機能を用意する必要がある。」", options: ["不正アクセス禁止法", "青少年ネット規制法", "プロバイダー責任法", "電子契約法"], answer: 3, explanation: "申し込み完了前に、ユーザーが申し込み内容を確認できる措置を講じなければならないことを規定しているのは「電子契約法」である。具体的には、申し込みボタンをクリック後、申し込みの意思表示となる確認画面を設け、ユーザーの意思によって修正できる機能を用意する、といったことである。"},
+            {id: "c2_q32", type: "exercise", chapter: 2, text: "著作権に関する説明として正しいのは、次のどれか。", options: ["著作権が認められる表現形式は、言語、音楽、絵画のみに限られる", "著作隣接権は、他人の著作物を利用して、その著作物を公衆伝達する事業者に発生する権利のことである", "著作者人格権と著作財産権は必ず同一人物が保有し、権利行使をする必要がある", "著作者人格権は譲渡不可で、その権利は恒久的なものである"], answer: 1, explanation: "著作権の保護対象となる表現形式として、言語、音楽、絵画、写真、プログラムなど幅広く認められる。著作財産権を著作者人格権とは別に譲渡するなど、それぞれ別々の権利行使が可能である。著作者人格権は譲渡不可ではあるが、その権利は恒久的ではなく、一定の保護期間内(原則として、著作者の生存期間および死後50年以内)で有効である。"},
+            {id: "c2_q33", type: "exercise", chapter: 2, text: "クリエイティブ・コモンズの以下のライセンス表示が意味するものは、次のどれか。", image: "image_05036f.png", options: ["原作者のクレジットを表示し、作品を改変しない条件で、営利目的で利用できる", "原作者のクレジットを表示し、二次創作物にも同じ条件を継承すれば、改変や営利目的での二次利用ができる", "原作者のクレジットを表示し、かつ、非営利目的であれば、改変したり再配布することができる", "原作者のクレジットを表示すれば、改変や営利目的での二次利用ができる"], answer: 2, explanation: "クリエイティブ・コモンズ・ライセンスは、表示、改変禁止、非営利、継承の4項目の組み合わせによって示される。表示と非営利という2つの条件を組み合わせたライセンス表示は、「原作者のクレジットを表示し、かつ、非営利目的であれば、改変したり再配布することができる」ことを意味する。"},
+            
+            // 第3章
+            {id: "c3_q34", type: "exercise", chapter: 3, text: "アメリカの非営利団体PMIが策定するプロジェクトマネジメントの知識体系は、次のどれか。", options: ["Backlog", "PDCA", "PMBOK", "MBO"], answer: 2, explanation: "アメリカの非営利団体PMIが策定するプロジェクトマネジメントの知識体系は「PMBOK(Project Management Body of Knowledge)」である。5個の基本的なプロセスグループと、9個のナレッジエリア (知識領域)に分類し、管理業務を行うための詳細な方法が規定されている。"},
+            {id: "c3_q35", type: "exercise", chapter: 3, text: "プロジェクトマネジメントにおける予算設定に関する以下の文章について、空欄(A) (B) (C)に当てはまる言葉の正しい組み合わせは、次のどれか。\n「プロジェクトの作業内容のことを(A)と呼ぶ。プロジェクトが完了する条件を設定し、( A )を定義することで初めて、プロジェクトマネジメントが可能になる。そのためには、クライアント(発注者)が作成した(B)を元にしたオリエンテーションやヒアリング作業をもとに、要求を明らかにする。次に、明確になった作業範囲を、数値として管理可能なタスクという単位に細分化する。この作業によって明確になった一連のタスク構成を(C)と呼ぶ。」", options: ["A: スコープ B: RFP C: WBS", "A: スコープ B: WBS C: RFP", "A: コスト B: RFP C: WBS", "A: コスト B: WBS C: RFP"], answer: 0, explanation: "プロジェクトの作業内容のことを「スコープ」と呼ぶ。プロジェクトが完了する条件を設定し、スコープを定義することで初めて、プロジェクトマネジメントが可能になる。そのためには、クライアント (発注者)が作成した「RFP (Request For Proposal)」を元にしたオリエンテーションやヒアリング作業をもとに、要求を明らかにする。次に、明確になった作業範囲を、数値として管理可能なタスクという単位に細分化する。この作業によって明確になった一連のタスク構成を「WBS (Work Breakdown Structure)」と呼ぶ。"},
+            {id: "c3_q36", type: "exercise", chapter: 3, text: "発注者との窓口として、契約締結の手続きや公式なアポイントメント調整を行う業務のことを何というか。", options: ["ディレクション業務", "アカウント業務", "マーケティング業務", "コンサルティング業務"], answer: 1, explanation: "アカウント業務は、発注者との窓口として、契約締結の手続きや公式なアポイントメントの調整を行うなどの業務を指す。アカウントは英語で「account」。勘定、口座から転じて、顧客、得意先という意味。"},
+            {id: "c3_q37", type: "exercise", chapter: 3, text: "Webサイト制作の役割に関する以下の文章は、次のどの担当者に該当するか。\n「Webサイトでのユーザビリティに影響するユーザーインターフェイスの決定、イメージに影響するカラースキームの設計、ビジュアルデザイン作成などを行う。」", options: ["フロントエンドエンジニア", "プログラマー", "デザイナー", "マーケター"], answer: 2, explanation: "デザイナーは、Webサイトでのユーザビリティに影響するユーザーインターフェイスの決定、イメージに影響するカラースキームの設計、ビジュアルデザイン作成などを行う。"},
+            {id: "c3_q38", type: "exercise", chapter: 3, text: "Webサイト制作業務に関する以下のリソースについて、通常はソフトウェアに含まれないと考えられるのは、次のどれか。", options: ["CMS", "画像や映像などのデジタル素材", "有償のクラウドサービス", "サーバー"], answer: 3, explanation: "ソフトウェアには、サーバーOS やサーバーソフトウェア、データベース、特殊なプラグインなどWebサービスそのものを動かすためのシステムに関するリソースのほか、CMSなどのWeb アプリケーション、Webサイト上で使用する画像や映像などのデジタル素材、ASPなどの外部サービスや有償のクラウドサービスなどが含まれる。物理的な「サーバー」そのものは、ハードウェアに該当する。"},
+            {id: "c3_q39", type: "exercise", chapter: 3, text: "スケジュール管理に関する以下の図の説明として正しいのは、次のどれか。", image: "image_0503ae.png", options: ["ある作業内容や成果物に対する意見や改善要望、例えば、デザインの印象、批評、実装した機能の評価など、あらゆる局面で関係者から受ける「フィードバック」という方法", "WBSで作成されたタスクにかかる所要日数をカレンダーにプロットしていき、タスクの完了目標日を明らかにして進捗度を把握する「ガントチャート」という方法", "各タスク間の相関性、依存性を明らかにして、重複進行できるタスクや余裕のないタスクを明らかにする「クリティカルパス」という方法", "企業が適切な発注先を決定するために選定会を実施する「コンペ」という方法"], answer: 2, explanation: "クリティカルパスは、各タスク間の相関性、依存性を明らかにして、重複進行できるタスクや余裕のないタスクを明らかにする方法である。通常、クリティカルパスは絶対に縮めることのできない工程となる。"},
+            {id: "c3_q40", type: "exercise", chapter: 3, text: "Web サイト運用におけるPDCAサイクルの組み合わせとして適切と考えられるのは、次のどれか。", options: ["Plan: 広報や広告などのマーケティングやクロスメディアプロモーションを実施する\nDo: 目標数値と実績数値を比較する\nCheck: 目標を上回っていればそのまま継続し、下回っていれば原因を突き止め、改善案や追加施策を立てる\nAct: CVRなどの目標設定を行う", "Plan: CVRなどの目標設定を行う\nDo: 広報や広告などのマーケティングやクロスメディアプロモーションを実施する\nCheck:目標数値と実績数値を比較する\nAct: 目標を上回っていればそのまま継続し、下回っていれば原因を突き止め、改善案や追加施策を立てる", "Plan: 目標を上回っていればそのまま継続し、下回っていれば原因を突き止め、改善案や追加施策を立てる\nDo: CVRなどの目標設定を行う\nCheck: 広報や広告などのマーケティングやクロスメディアプロモーションを実施する\nAct: 目標数値と実績数値を比較する", "Plan:目標数値と実績数値を比較する\nDo: 目標を上回っていればそのまま継続し、下回っていれば原因を突き止め、改善案や追加施策を立てる\nCheck: CVRなどの目標設定を行う\nAct: 広報や広告などのマーケティングやクロスメディアプロモーションを実施する"], answer: 1, explanation: "Web サイト運用における PDCAサイクルの例として、まず「Plan」でCVRなどの目標設定を行い、「Do」で広報や広告などのマーケティングやクロスメディアプロモーションを実施したあと、「Check」で目標数値と実績数値を比較し、最後の「Act」では、目標を上回っていればそのまま継続し、下回っていれば原因を突き止め、改善案や追加施策を立てる、といった流れが挙げられる。このようなサイクルの繰り返しによって、Web サイトの成果を高められる。"},
+            
+            // 第4章
+            {id: "c4_q41", type: "exercise", chapter: 4, text: "Webサイトの主なパターンに関する以下の文章が該当するのは、次のどれか。\n「特設サイトやプロモーションサイトとも呼ばれる。日常の情報発信が目的ではなく、期間限定や広告連動のサイトが該当する。ブランド・プロダクトサイトに似ているが、ソーシャルメディアと連携して投稿を促したり、アイデアや意見を募集したりと、消費者参加型のしかけを行うことが多い。また、ゲームや動画などのエンターテインメント性を前面に出したサイトもある。」", options: ["ブランド・プロダクトサイト", "キャンペーンサイト", "コーポレートサイト", "ECサイト"], answer: 1, explanation: "キャンペーンサイトは、特設サイトやプロモーションサイトとも呼ばれる。日常の情報発信が目的ではなく、期間限定や広告連動のサイトが該当する。"},
+            {id: "c4_q42", type: "exercise", chapter: 4, text: "ECサイトに関する説明として誤りと考えられるものは、次のどれか。", options: ["市場規模としては、B2B型よりもB2C型のほうが大きい", "B2C型には大きく分けて「単品販売型」と「総合販売型」の2つがある", "サイト管理だけでなく、商品管理、売上管理、顧客管理、サポート業務なども必要である", "独自のECサイトを起ち上げるのではなく、ショッピングモールへの出店やクラウドサービスを利用する方法もある"], answer: 0, explanation: "EC(電子商取引)の中でも、B2BはB2Cよりも市場規模が大きく、2022年度は420兆2,354 億円となった。B2Bの例としては、オフィス用品の販売、業務用パソコンの法人販売、部品や原料の調達・貸し出し、人材派遣業、法人向けインターネット回線契約、ネットメディアへの宣伝広告掲載などが挙げられる。"},
+            {id: "c4_q43", type: "exercise", chapter: 4, text: "Webサイト制作ワークフローに関する以下の文章は、次のどのフェーズについて説明したものか。\n「公開後、情報発信を継続し、広報や広告活動を交えながらWebサイトの価値向上を目指す。具体的には、サイト内にコンテンツを追加し、プロモーション施策を考え実行しながら、目標の達成度を検証していく。また、セキュリティ上問題があった場合のデバッグ対応や、ユーザーの要望や計画に応じた機能追加などを行う。完成後の大幅な方針変更や構造変更には大きなコストがかかるため、長期的な視野に立って各フェーズの作業内容を設定することが大切である。現在では、アクセス解析などを利用した仮説検証型のWebサイト運用が求められている。日々の運用の中で、改善のためのアクションプランを仮説として立て、実行し、実際に効果があったかどうかを検証する継続的な取り組みが必要である。」", options: ["企画フェーズ", "設計フェーズ", "制作フェーズ", "保守・運用フェーズ"], answer: 3, explanation: "保守・運用フェーズでは、更新作業やプロモーションの実施、アクセス解析などを利用した継続的な仮説検証が求められる。現在では特に、Webマーケティングに関する幅広い取り組みが必要であり、保守・運用フェーズの充実がWeb サイトの成果に直結する。"},
+            {id: "c4_q44", type: "exercise", chapter: 4, text: "Web サイトの現状分析に際して、成功している事例として調査・分析の参考にすべき Webサイトは、次のどれか。", options: ["ベンチマークサイト", "競合サイト", "まとめサイト", "ポータルサイト"], answer: 0, explanation: "ベンチマーキングとは、事業やプロジェクトの改善、新規構築のために、成功している事の調査分析を行い、そこから成功因子を学び取ることを指す。Web サイト制作では、参考として取り入れたい要素を持つサイトを「ベンチマークサイト」と呼ぶ。"},
+            {id: "c4_q45", type: "exercise", chapter: 4, text: "Web サイトの評価にあたって、ユーザーの来訪動機やマインドを想定したうえで、調査者がWeb サイトを実際に回遊して問題点を洗い出す手法は、次のどれか。", options: ["ユーザーテスト", "アンケート評価", "ウォークスルー評価", "ヒューリスティック評価"], answer: 2, explanation: "ウォークスルー評価は、ユーザーの来訪動機やマインドを想定したうえで、調査者がWebサイトを実際に回遊して問題点を洗い出す手法のこと。主にWeb サイトの遷移や情報提供、ユーザビリティに関する問題が発見できる。"},
+            {id: "c4_q46", type: "exercise", chapter: 4, text: "Webサイトのゴール設定に関する以下の文章について、空欄(A) (B) (C)に当てはまる言葉の正しい組み合わせは、次のどれか。\n「さまざまな要望に対してプライオリティ (優先順位)をつけて段階的にゴールを達成していく必要がある。プライオリティのつけ方としては(A)と(B)がある。(A)によるプライオリティづけは、それがないとサービス品質の絶対的な低下が起こる、Webサイトや Webサービスの構成要素として必須といった判断基準を優先し、選択していく方法である。一方、(B)によるプライオリティづけとは、ユーザー満足を高めるもの、ユーザーが求めているものを優先する方法である。\n(C)なゴールに至るまでの段階的なゴールと優先順位を設定し、適切にコントロールしていくことが重要である。」", options: ["A: 価値提供視点 B: ユーザーニーズ視点 C: 短期的", "A: 価値提供視点 B: ユーザーニーズ視点 C: 長期的", "A: ユーザーニーズ視点 B: 価値提供視点 C: 短期的", "A: ユーザーニーズ視点 B: 価値提供視点 C: 長期的"], answer: 1, explanation: "さまざまな要望に対してプライオリティ (優先順位)をつけて段階的にゴールを達成していく必要がある。プライオリティのつけ方としては「価値提供視点」と「ユーザーニーズ視点」がある。長期的なゴールに至るまでの段階的なゴールと優先順位を設定し、適切にコントロールしていくことが重要である。"},
+            {id: "c4_q47", type: "exercise", chapter: 4, text: "ペルソナに関する説明として正しいものは、次のどれか。", options: ["建築家であり自らもインフォメーションアーキテクトでもあるリチャード・S・ワーマンが考案したデザイン手法といわれる", "将来の顧客像を明確化したものであり、企業やWebサイトが理想とする空想上のユーザーである", "よく使われる言葉である「ターゲットユーザー」とほぼ同義である", "その像の人となりや振る舞いがわかるように、さまざまな項目について具体的に記述するとよい"], answer: 3, explanation: "ペルソナは、1990年代後半に、アラン・クーパー(Alan Cooper) が導入したデザイン手法といわれる。実在する顧客データから導き出すサンプリングモデルであり、企業やWebサイトにとって都合のよい、空想上のユーザーではない点に注意。ペルソナと似た言葉としてよく使われる「ターゲットユーザー」とは、実際のデータに基づく点、具体的である点に大きな違いがある。その像の人となりや振る舞いがわかるように、さまざまな項目について具体的に記述するとよい。"},
+            {id: "c4_q48", type: "exercise", chapter: 4, text: "Web サイトのコンテンツ企画に関する説明として誤りと考えられるのは、次のどれか。", options: ["必要なコンテンツの方向性と内容を、ペルソナに合わせることが重要である", "コンテンツリストから着手するのが一般的であり、新規構築では、製品やサービスのパンフレットやマニュアルなどの印刷物の内容をベースにすることがまず考えられる", "広告からのランディングページの企画では、ビジュアルを多様し、強いインパクトやメッセージ性を優先したり、コンバージョンという明確なゴールを設定することが重要となる", "クロスメディアで展開する場合は、マス広告やチラシなどの紙の広告からの導線設計は考えず、Webサイトのコンテンツの完結性を最優先にする"], answer: 3, explanation: "プロモーションをクロスメディアで展開する場合は、マス広告やチラシなどの紙の広告からの導線設計も踏まえて、適切なコンテンツを考案することが大切。つまり、Web サイトのコンテンツだけで完結するわけではなく、コンテキスト(文脈や前後関係)を考えたコンテンツが必要である。例えば、テレビCMで「続きはWebで」としてWeb サイトに誘導する場合、そのCMの内容とコンテンツに連続性が求められる。"},
+            {id: "c4_q49", type: "exercise", chapter: 4, text: "Web サイトのコンテンツのひとつである「オウンドメディア」に該当する説明文は、次のどれか。", options: ["企業やブランドが所有する独自のメディアのことであり、マーケティングの観点から、ユーザーへの貢献や関係性の構築を目的としている点が特徴である", "ソーシャルグラフの拡張概念とされ、「人と人」だけでなく「人とモノ」のつながりをデータとして活用することである", "主に広告をクリックしたあとの着地を前提にしたページであり、Webサイト内の通常のページとは異なり、回遊性などはほぼ考えず、ユーザーの行動につなげるための情報を軸に構成する", "商品購入やサービス利用が環境保護などの社会貢献に結びつくことをアピールすることであり、例えば、ある商品を買うと1円分が環境保護や発展途上国の教育支援にあてられるなどである"], answer: 0, explanation: "オウンドメディアとは、企業やブランドが所有する独自のメディアのこと。マーケティングの観点から、ユーザーへの貢献や関係性の構築を目的としている点が特徴である。ページビュー数やユニークユーザー数はもとより、ソーシャルメディアでの反響、コンバージョン数など、マーケティング視点での目標値を設定することが大切である。"},
+            {id: "c4_q50", type: "exercise", chapter: 4, text: "Facebook であるページを紹介しようとURLを入力すると、次のようなページタイトルや画像が自動的に表示された。ソーシャルメディアへの投稿時に上記のようなメタデータが自動的に取得され、投稿に含められる仕組みは、次のどれか。", image: "image_0503e8.png", options: ["RSS", "OGP", "API", "リッチスニペット"], answer: 1, explanation: "ソーシャルメディアへのコンテンツ展開では、OGP (Open Graph Protocol) に基づくコードをHTML内に組み込むことが大切である。OGPでは、ページタイトル、説明文、画像などが指定でき、コンテンツ概要の流通が大いに促進される。"},
+            {id: "c4_q51", type: "exercise", chapter: 4, text: "Webサイト制作における素材・ドキュメント管理に関する説明として誤りと考えられるものは、次のどれか。", options: ["プロジェクトメンバーがいつでもプロジェクトの資料や成果物などのデータにアクセスでき、途中からプロジェクトに加わったメンバーでもすぐにプロジェクトの概要を把握できる環境を整えることは、効率的なプロジェクト運営に欠かせない", "デザイナーやエンジニアなどが使用するマシン、OS、Webブラウザ、アプリケーションなどのこと。メンバーそれぞれが品質の高い成果物を生み出すためには、作業に必要なスペックを持ったマシンやアプリケーションなどが十分に機能する環境を与えられることが大切である", "デバイスの多様化に伴い、テスト環境構築に一定のコストをかけること、継続的にケアをすることが求められるようになった。例えば、スマートフォンやタブレットの代表的な機種の購入、古いデバイスとOS環境の保持などである", "企業の多くがセキュリティの観点からほぼすべてのクラウドサービスの利用を推奨しており、ローカル環境にデータを保存することはプロジェクト管理上の大きなリスクとなる"], answer: 3, explanation: "素材・ドキュメント管理において、企業によってはセキュリティの観点から一部のクラウドサービスの利用を禁じている場合があることから、圧縮ファイル共有サービスなどの利用が必要なケースもある。"},
+            {id: "c4_q52", type: "exercise", chapter: 4, text: "サイト設計書に含める以下の項目と説明の組み合わせとして適切なのは、次のどれか。\n<項目>\nA: ハイレベルサイトマップ\nB: ワイヤーフレーム\nC: デザインコンセプト\n<説明>\nD: ビジュアルデザインを制作する際の拠り所となるドキュメントで、視覚的に伝えたい雰囲気やトーンなどを決定し、プロジェクトメンバーで共有するために用いる\nE: Web サイトの全体像をおおまかに理解できるようにまとめたドキュメントで、主たる構成を図式化し、プロジェクトメンバーが理解するための設計図である\nF: 特定のWebページの中に含まれる情報として何が必要なのかを記載したドキュメントである", options: ["AとD BとE CとF", "AとE BとF CとD", "AとF BとD CとE", "AとE BとD CとF"], answer: 1, explanation: "ハイレベルサイトマップは、Web サイトの全体像をおおまかに理解できるようにまとめたドキュメントで、主たる構成を図式化し、プロジェクトメンバーが理解するための設計図である。ワイヤーフレームは、特定のWebページの中に含まれる情報として何が必要なのかを記載したドキュメントである。デザインコンセプトは、ビジュアルデザインを制作する際の拠り所となるドキュメントで、視覚的に伝えたい雰囲気やトーンなどを決定し、プロジェクトメンバーで共有するために用いる。"},
+            {id: 'c4_q53', type: 'exercise', chapter: 4, text: 'サイト設計書に関する説明として正しいと考えられるのは、次のどれか。', options: ['ワイヤーフレームの作成は必ずデザイナーが担当し、含める情報の種類だけでなく配置までを詳細に決定しておく', 'Webサイトも紙媒体と同じように、CMYK方式に基づいてカラースキームを決定しておく', 'すべてのドキュメントは印刷することを前提とし、Microsoft Office などを用いて作成するため、Google DriveなどのオンラインツールやHTMLを用いる方法は採用しない', 'プロジェクトメンバーだけでなく、必ずしも制作のプロフェッショナルではない発注者や事業責任者にもこれから作るWebサイトの姿がわかるようにすることも目的としている'], answer: 3, explanation: 'サイト設計書は、プロジェクトメンバーだけでなく、必ずしも制作のプロフェッショナルではない発注者や事業責任者にもこれから作る Web サイトの姿がわかるようにすることも目的としている。また、人事異動などで発注者側の新たな担当者が初めてサイト設計書を見る、というケースも多いため、そういった人にも理解できるように留意して作ることが望ましい。'},
+            {id: 'c4_q54', type: 'exercise', chapter: 4, text: '制作仕様書に関する以下の文章は、次のどの内容について説明したものか。\n「HTMLやCSSの記述方法をまとめたもの。HTMLやCSSのバージョンや文字コードについて、対象とするデバイスや制作ワークフローを考慮して適切な種類を選ぶ。また、HTMLのタイトル、メタ情報、CSS、JavaScript、APIの指定方法、IDやクラスの命名規則、ソースコードの記述方法などについても、きちんと決めておくことが望ましい。」', options: ['コーポレートアイデンティティ規定', 'デザインガイドライン', 'コーディングガイドライン', 'アクセシビリティガイドライン'], answer: 2, explanation: 'コーディングガイドラインは、HTMLやCSSの記述方法をまとめたものである。HTMLやCSSのバージョンや文字コードについて、対象とするデバイスや制作ワークフローを考慮して適切な種類を選ぶ。また、HTMLのタイトル、メタ情報、CSS、JavaScript、API の指定方法、ID やクラスの命名規則、ソースコードの記述方法などについても、きちんと決めておくことが望ましい。'},
+            {id: 'c4_q55', type: 'exercise', chapter: 4, text: 'カラーコードとは、Webページ上で表現する色を指定するための制御コードである。次のうち、適切な色表現がなされないと考えられる指定方法はどれか。', options: ['#ffffff', '#fff', '*ffffff', 'white'], answer: 2, explanation: 'カラーコードは、Webページ上で表現する色を指定するための制御コードである。RGB (Red、Green、Blue) の2桁ずつの値を組み合わせ、 (#) に続く6桁の16進数で指定する(#ffffff など)。RGBの2桁ずつが同じ値の場合は3桁で指定できる(#fffなど)。また、多くのブラウザが、140色以上のカラーネームによる指定をサポートしている(whiteなど)。'},
+            {id: 'c4_q56', type: 'exercise', chapter: 4, text: '情報アーキテクチャでよく用いられる「ユーザー体験」の説明に該当するのは、次のどれか。', options: ['情報の見つけやすさのことであり、ユーザーが求めている情報にたどり着きやすいようにWebサイトをデザインすることが大切である', 'ユーザーがWebサイトに訪れた文脈や前後関係、背景のこと', '製品やサービスの使用や所有を通じてユーザーが認知する体験の品質であり、ドナルド・ノーマン (Donald A. Norman)が定義した', 'Webページに含まれる要素の中でも特に、ナビゲーション、ボタン、入力フォームなど、ユーザーの操作によって感応する部分'], answer: 2, explanation: 'ユーザー体験 (User Experience) は「UX」と略され、製品やサービスの使用や所有を通じてユーザーが認知する体験の品質を意味する。ドナルド・ノーマン (Donald A. Norman)が定義した概念である。'},
+            {id: 'c4_q57', type: 'exercise', chapter: 4, text: '情報アーキテクチャの成果物に関する以下の図について、空欄(A) (B) (C)に当てはまる言葉の正しい組み合わせは、次のどれか。', image: "image_05040d.png", options: ['A: ペルソナ B: 競合分析調査 C: コンテンツマトリックス', 'A: ターゲットユーザー B: インフォグラフィックス C: コンテンツマトリックス', 'A: ペルソナ B: インフォグラフィックス C: ヒアリングシート', 'A: ターゲットユーザー B: 競合分析調査 C: コンテンツマトリックス'], answer: 0, explanation: '情報アーキテクチャの成果物は、非常に多岐に渡る。図のAはペルソナ、Bは競合分析調査、Cはコンテンツマトリックスが正しい。'},
+            {id: 'c4_q58', type: 'exercise', chapter: 4, text: 'Web サイトの正式公開前に行うべき各種テストとその内容の説明として適切ではないものは、次のどれか。', options: ['クロスブラウザテスト: 特定のOSとWebブラウザの組み合わせで、制作者の意図したデザインや機能が実現されているか', 'ナビゲーションチェック ナビゲーションやハイパーリンクの操作によって、意図した場所に遷移するか', '機能テスト: 実装したプログラムの機能が、要件定義で定めたとおりに動作するか', 'バリデーションテスト: 文章に誤字・脱字、記述ミス、間違った用法が残っていないか'], answer: 3, explanation: 'バリデーションテストは「HTMLやCSSがW3C 仕様に準拠しているか」のテストである。「文章に誤字・脱字、記述ミス、間違った用法が残っていないか」はテキストチェックである。'},// 第5章
+            {id: "c5_q59", type: "exercise", chapter: 5, text: "Webサイトに含めるテキストコンテンツの改善ポイントとして適切でないのは、次のどれか。", options: ["見出しレベルの違いがひと目でわかるように、文字の大きさや太さなどのデザインを調整する", "読み手のリテラシーレベルを考慮しすぎると、説明的な文章になってしまうので注意する", "図表化やリスト化をすることは、スクロール中でも目に入りやすいというユーザビリティ上のメリットがある", "背景が薄い色ならば、文字は濃い色にして、コントラストを保った読みやすい状態にする"], answer: 1, explanation: "Web サイトのテキストコンテンツは、読み手のリテラシーレベルを考えて、専門用語や難解語への補足説明の追加、ボキャブラリ (語彙) の変更などを行うことが大切である。"},
+            {id: "c5_q60", type: "exercise", chapter: 5, text: "画像素材の形式と特徴の説明として誤りと考えられるのは、次のどれか。", options: ["PNG: 8ピット形式、24ビット形式、32ビット形式があり、アルファチャンネルという機能では、画像の透明度を自由に設定できる", "GIF: ひとつの画像で512色まで利用でき、紙芝居のようなアニメーション効果や、任意の色を透明にする機能がある", "JPEG:約1,677万色の色表現が可能であるが、不可逆圧縮であるため、一度下げた画質を戻すことはできない", "SVG: ベクター図形を扱うフォーマットであり、ビットマップ画像と異なり、拡大縮小を行っても描画の劣化が起きない特徴がある"], answer: 1, explanation: "広く用いられている画像形式のひとつであるGIFは、ひとつの画像で256色まで利用でき、紙芝居のようなアニメーション効果や、任意の色を透明にする機能がある。"},
+            {id: "c5_q61", type: "exercise", chapter: 5, text: "デジタルカメラでの写真撮影に関する以下の用語と説明の組み合わせとして適切なのは、次のどれか。\n<用語>\nA:ISO感度\nB: 絞り\nC: シャッタースピード\n<説明>\nD: レンズが取り込む光の量の調整\nE: レンズが取り込んだ光にイメージセンサーがさらされる時間\nF: どれくらい弱い光まで記録するか", options: ["AとD BとE CとF", "AとE BとF CとD", "AとF BとD CとE", "AとE BとD CとF"], answer: 2, explanation: "ISO感度は「どれくらい弱い光まで記録するか」、絞りは「レンズが取り込む光の量の調整」、シャッタースピードは「レンズが取り込んだ光にイメージセンサーがさらされる時間」である。"},
+            {id: "c5_q62", type: "exercise", chapter: 5, text: "映像データに関する説明として誤りと考えられるのは、次のどれか。", options: ["映像データは、ファイル形式である「コンテナ」と、圧縮伸張の仕組みである「コーデック」からなる", "ストリーミングは、データをキャッシュに保存せずに、再生と破棄を繰り返しながら配信する方式である", "プログレッシブダウンロードは、すべてのデータをダウンロードし終えてから再生を開始する方式である", "現在、もっとも普及している映像フォーマットはMPEG-4であり、H.264 というコーデックとあわせて利用されることが多い"], answer: 2, explanation: "プログレッシブダウンロードは、データを一時ファイルとしてキャッシュに保存しながら再生する方式。YouTube やニコニコ動画が採用している。特別な配信サーバーを利用しなくても映像配信が行えるという特徴がある。"},
+            {id: "c5_q63", type: "exercise", chapter: 5, text: "インタラクティブコンテンツにおける「パララックス」という表現を正しく説明したものは、次のどれか。", options: ["対比効果のこと。コンテンツ要素で主たるものと従たるものを対比させて配置する表現", "視差効果のこと。スクロールに応じてコンテンツ要素やデザインが動的に変化する表現", "消失点のこと。コンテンツ要素がその一点に向けて収束するように工夫する表現", "三分割法のこと。縦横を三分割して、重なるところにコンテンツ要素を配置する表現"], answer: 1, explanation: "パララックス (parallax) は「視差効果」の意味。Web サイト制作においては、スクロールに応じてコンテンツ要素やデザインが動的に変化する表現を指す。"},
+            {id: "c5_q64", type: "exercise", chapter: 5, text: "インタラクティブコンテンツを実装する際のユーザビリティ上の注意点に該当しないと考えられるのは、次のどれか。", options: ["ユーザーによる操作やコンテンツの変更など、状態の変化が確実に伝わること", "ボタンやリンクの操作によってもたらされるアニメーションや動きに新規性があること", "ユーザーの操作ミスなどを想定し、取り消しや修正ができるようにすること", "その表現や提示方法によって、従来の方法より操作性が向上し、操作の間違いが減ること"], answer: 1, explanation: "インタラクティブコンテンツを実装する際のユーザビリティ上の注意点に、「ボタンやリンクの操作によってもたらされるアニメーションや動きに新規性があること」は該当しない。むしろ、慣れ親しんでいないアニメーションや動きによって、ユーザビリティが低下する恐れがあるからである。"},
+            {id: "c5_q65", type: "exercise", chapter: 5, text: "ビジュアルデザインにおける黄金比の比率として正しいのは、次のどれか。", options: ["1:1.414", "1:1.618", "1:1.732", "1:2.236"], answer: 1, explanation: "黄金比は1:1.618という矩形のバランスで、もっとも美しい比率であるとされている。名刺のサイズやカード類はもとより、ギリシアのパルテノン神殿や美術品などの人工物、自然界においても植物の葉の並び方や巻貝にも見られる。"},
+            {id: "c5_q66", type: "exercise", chapter: 5, text: "ビジュアルデザインに関する以下の文章について、空欄(A) (B)に当てはまる言葉の正しい組み合わせは、次のどれか。\n「(A)は何らかの情報や注意を示すために表示される視覚記号(サイン)であり、公共機関での標識やトイレ、禁煙、非常口の表示など多くの場所で用いられている。言葉がわからなくてもその意味することを理解できるのが利点で、グローバルな情報空間であるインターネットに適した表現手法である。また、現実世界にあるものをデザインに取り入れる方法がある。これは(B)と呼ばれている。例えば、表示する内容の切り替えにタブのデザインを用いることである。」", options: ["A: ピクトグラム B: メタファー", "A: メタファー B: ピクトグラム", "A: パース B: カーニング", "A: カーニング B: パース"], answer: 0, explanation: "「ピクトグラム」は何らかの情報や注意を示すために表示される視覚記号(サイン)であり、公共機関での標識やトイレ、禁煙、非常口の表示など多くの場所で用いられている。Webサイトではシンボルアイコンやアイコンフォントとして利用されるケースが多い。現実世界にあるものをデザインに取り入れる方法は「メタファー (暗喩)」と呼ばれている。例えば、表示する内容の切り替えにタブのデザインを用いることや、実際のボタンの形状を模したUIなどである。"},
+            {id: "c5_q67", type: "exercise", chapter: 5, text: "人間の目は色の三原色と呼ばれる複数の色を合成して、オレンジや紫といった色として感じる。電子メディアで標準的な混色方法である加法混色に含まれない色は、次のどれか。", options: ["青色", "緑色", "黄色", "赤色"], answer: 2, explanation: "電子メディアで標準的な混色方法である「加法混色」の原色は赤 (Red)、緑(Green)、青(Blue)であり、RGBと略される。すべての色が重なり合った部分は、光が飽和した状態、つまり白になる。"},
+            {id: "c5_q68", type: "exercise", chapter: 5, text: "色と視認性に関する以下の文章について、空欄(A) (B) (C)に当てはまる言葉の正しい組み合わせは、次のどれか。\n「世界的にも注意喚起を意味するには(A)が多用されるのは、人間の目に見えやすいためである。特に黒と併用した場合、明度差が強調されて(A)が引き立ち「注意」の意味が強まる。色で注意を集めることを考えると、(B)もまた妥当な選択である。(B)など暖色系全般は前進色であり、膨張色である。存在感が強く、要素を大きく見せることもできる。また、カラーイメージとして(B)は最重要色であるという認識が一般的であり、こうした社会通念に配慮することも重要である。」", options: ["A:青色 B:赤色", "A:赤色 B:青色", "A:赤色 B:黄色", "A:黄色 B:赤色"], answer: 3, explanation: "世界的にも注意喚起を意味するには黄色が多用されるのは、人間の目に見えやすいためである。特に黒と併用した場合、明度差が強調されて黄色が引き立ち 「注意」の意味が強まる。色で注意を集めることを考えると、赤色もまた妥当な選択である。赤色など暖色系全般は前進色であり、膨張色である。存在感が強く、要素を大きく見せることもできる。また、カラーイメージとして赤色は最重要色であるという認識が一般的であり、こうした社会通念に配慮することも重要である。"},
+            {id: "c5_q69", type: "exercise", chapter: 5, text: "タイポグラフィとフォントに関する説明として正しいのは、次のどれか。", options: ["ジャンプ率は、見出しと通常の文章などに設定されている文字色の明度差のこと", "アンチエイリアスは、文字の輪郭に発生するジャギー (ギザギザ)を目立たなくする処理のこと", "明朝体はほぼ一定の太さの線で文字を表現するフォントで、欧文フォントのサンセリフ(sans-serif)に該当する", "ゴシック体は「ハネ」「トメ」に装飾のあるフォントで、欧文フォントのセリフ (serif)に該当する"], answer: 1, explanation: "「アンチエイリアスは、文字の輪郭に発生するジャギー(ギザギザ)を目立たなくする処理のこと」が正しい。ジャンプ率は、見出しと通常の文章などの文字サイズの比率のこと。明朝体は「ハネ」「トメ」に装飾のあるフォントで、欧文フォントのセリフ (serif)に該当する。ゴシック体はほぼ一定の太さの線で文字を表現するフォントで、欧文フォントのサンセリフ (sans-serif)に該当する。"},
+            {id: "c5_q70", type: "exercise", chapter: 5, text: "Webサイト制作におけるタイポグラフィの可能性が年々広がっている。以下の文章が意味しているのは、次のどれか。\n「Webページ上のテキストについて、ユーザーのOS環境に依存せず、サーバーからフォントを提供する仕組み。」", options: ["アイコンフォント", "Webフォント", "SVG フォント", "システムフォント"], answer: 1, explanation: "Webフォントは、ユーザーのOS環境に依存せず、サーバーからフォントを提供する仕組みである。サーバーにフォントファイルを置いておき、ユーザーがHTMLやCSSとともにダウンロードすることで、テキストにそのフォントが適用される。無償または有償のホスティングサービスも利用できる。"},
+            {id: "c5_q71", type: "exercise", chapter: 5, text: "コーポレートアイデンティティの3つの主要素に当てはまらないのは、次のどれか。", options: ["名称", "ロゴ", "ブランド", "メッセージ"], answer: 2, explanation: "コーポレートアイデンティティ (Corporate Identity、CI)は、主に「名称」 「ロゴ」 「メッセージ」の3つによって表現される。ブランドは「ユーザーがその組織や製品、サービスを識別できること、またその概念」であり、CIはブランドを支える要素のひとつである。"},
+            {id: "c5_q72", type: "exercise", chapter: 5, text: "コーポレートアイデンティティの伝達におけるビジュアルデザインの役割や判断について、誤りと考えられる説明は、次のどれか。", options: ["コーポレートアイデンティティはビジュアルデザインと密接に関係し、企業イメージが正しく伝わるようにビジュアルデザインを決定するのは当然のこと、メッセージとブランドプロミスを強化することが求められる", "ロゴによっては、小さいサイズでの表示を想定せずにデザインされたものもあり、クライアントの了解のもとで、Webのみ例外的にロゴと社名・コピーを切り離すといった新たな利用方法を設けなければならないケースもある", "コーポレートカラーはCI伝達上もっとも重要な要素のひとつであり、Webでのテーマカラー選択も、コーポレートカラーをもとに色展開し決定するケースが多い", "コーポレートアイデンティティの中でも視覚表現に関するものは SI (Sound Identity)と呼ばれ、一貫したSIの利用によって、企業や製品のブランドイメージの確立に寄与できる"], answer: 3, explanation: "コーポレートアイデンティティの中でも視覚表現に関するものはVI (Visual Identity) と呼ばれる。SI (Sound Identity)は、社名やコピーを伝えるごく短い音声・音響効果である「サウンドロゴ」や、メッセージソングなどが該当する。モーショングラフィックスとサウンドロゴと一緒にムービーとして利用する場合、VIとSIの複合利用となる。"},
+            {id: "c5_q73", type: "exercise", chapter: 5, text: "Web 技術のひとつである「JavaScript」の標準仕様を定めている団体は、次のどれか。", options: ["Ecma International", "W3C", "ISO", "WAI"], answer: 0, explanation: "Ecma International の旧名は ECMA (欧州電子計算機工業会)。JavaScriptの標準仕様である ECMAScript、オフィス文書用ファイルフォーマットである Office Open XML などを定めている。"},
+            {id: "c5_q74", type: "exercise", chapter: 5, text: "Webサイト制作の基本言語に関する以下の図について、空欄(A) (B) (C)に当てはまる言葉の正しい組み合わせは、次のどれか。", image: "image_0506d6.png", options: ["A: HTML B: JavaScript C: CSS", "A: CSS B: JavaScript C: HTML", "A: HTML B: CSS C: JavaScript", "A: CSS B: HTML C: JavaScript"], answer: 2, explanation: "Webサイト制作において、HTML (.html) は文書構造、CSS (.css)は視覚表現、JavaScript (.js) は振る舞い (動き)の指定のために利用する。"},
+            {id: "c5_q75", type: "exercise", chapter: 5, text: "Web サイト制作に関する以下の用語と説明の組み合わせとして適切なのは、次のどれか。\n<用語>\nA: バリデーション\nB: ガイドライン\nC: テンプレート\nD: CMS\n<説明>\nE: 制作や運用に関する取り決め\nF: HTMLやCSSのソースコードの検証作業\nG: Webコンテンツを統一的に管理する仕組み\nH: Webページのひな形", options: ["AとE、BとG、CとH、DとF", "AとF、BとE、CとH、DとG", "AとG、BとE、CとF、DとH", "AとH、BとF、CとE、DとG"], answer: 1, explanation: "バリデーションは「HTMLやCSSのソースコードの検証作業」、ガイドラインは「制作や運用に関する取り決め」、テンプレートは 「Webページのひな形」、CMSは「Webコンテンツを統一的に管理する仕組み」のこと。"},
+            {id: "c5_q76", type: "exercise", chapter: 5, text: "Webサイト制作の実務として正しいと考えられるのは、次のどれか。", options: ["日本で広く利用されているCMSとしては、WordPress Movable Type、a-blog cms、EC-CUBEがあり、これらの4つのCMSでシェア100%となる", "制作者はあらかじめ要件定義で決められたターゲットブラウザで、きちんと表示され、動作することをチェックする必要はなく、ユーザーからのフィードバックによって不具合を把握し、修正する", "現在では多くのサイトでスマートフォンやタブレットからのアクセスが過半を占めるまでになっておらず、これらのデバイスでの表示や操作性を入念に設計し、実装するよりも、パソコンでの表示や操作性を念頭に置く", "アクセス解析のためのトラッキングコード、リスティング広告の効果測定のためのコードなど、Webマーケティングに関わるコーディングが必要であり、今後も対応すべきサービスが増えることで、コードの種類も増えていくことが予想される"], answer: 3, explanation: "アクセス解析のためのトラッキングコード、リスティング広告の効果測定のためのコードなど、Webマーケティングに関わるコーディングが必要である。これらのコードの管理のために、タグマネージャーという仕組みが利用できる。タグマネージャーの利用には、複数のコードの一元管理のほか、コードの修正やバージョンアップにともなう煩雑さの軽減、テストやデバックのしやすさ、ページごとの出力設定のしやすさなど、さまざまなメリットがある。"},
+            {id: "c5_q77", type: "exercise", chapter: 5, text: "Web サイト制作における CSS 設計の必要性として誤りと考えられる説明は、次のどれか。", options: ["規則性を保ってCSSを記述する考え方のことであり、代表例は「SMACSS」や「FLOCSS」である", "ソースコードの見通しがよくなり、コーディングをする上での混乱や衝突が少なく済む", "複数人で作業をする場合や、他の人に担当を引き継ぐ場合に支障が出ないようにする", "CSSに拡張的な機能を取り入れるとともに、さまざまな処理を自動化できる"], answer: 3, explanation: "CSS に拡張的な機能を取り入れるとともに、さまざまな処理を自動化するための仕組みは「CSS プリプロセッサー」であり、CSS設計ではない。"},
+            {id: "c5_q78", type: "exercise", chapter: 5, text: "Webアクセシビリティに関連して、障害を持つ以下のユーザーの種類と利用する支援技術や装置の組み合わせとしては、次のどれが妥当と考えられるか。\nA: ロービジョンのユーザーと画面拡大ソフトウェア\nB: マウスを用いた操作ができないユーザーと点字ピンディスプレイ\nC: 全盲のユーザーとスクリーンリーダー", options: ["Aが誤り", "Bが誤り", "Cが誤り", "すべて正しい"], answer: 1, explanation: "点字ピンディスプレイは、画面の情報を点字で出力する装置であり、全盲のユーザーで点字が理解できる人向けのものである。マウスを用いた操作ができないユーザーは、キーボードによる操作のほか、ジョイスティックやトラックボールなどのポインティングデバイスを利用すると考えられる。"},
+            {id: "c5_q79", type: "exercise", chapter: 5, text: "JIS X 8341-3におけるアクセシビリティの4原則を表しているのは、次のどれか。", options: ["知覚可能に関する原則 操作可能に関する原則 理解可能に関する原則 堅ろう(牢)性に関する原則", "知覚可能に関する原則 理解可能に関する原則 読解可能に関する原則 保守性に関する原則", "操作可能に関する原則 理解可能に関する原則 保守性に関する原則 堅ろう (牢)性に関する原則", "操作可能に関する原則 支援可能に関する原則 理解可能に関する原則 堅ろう(牢)性に関する原則"], answer: 0, explanation: "JIS X 8341-3 におけるアクセシビリティの4原則は、知覚可能、操作可能、理解可能、堅ろう(牢) 性の各原則である。"},
+            {id: "c5_q80", type: "exercise", chapter: 5, text: "Webサイト制作上、アクセシビリティを向上させる施策として正しいのは、次のどれか。", options: ["画像に代替テキストを提供する", "色や形、位置だけで情報を伝える", "キーボードによる操作を想定しない", "フォーカス移動をランダムな順序にする"], answer: 0, explanation: "画像に代替テキストを提供することは、音声読み上げ装置のユーザーへの適切な情報伝達に役立つ。色や形、位置だけで情報を伝えること、フォーカス移動をランダムな順序にする(意味の通じる順序にしない) ことは、このようなユーザーの情報理解を妨げる。また、キーボードによる操作を想定せずに Web ページを制作することは、マウスを利用せず(または利用できず)、キーボード操作によってブラウジングするユーザーに不便が生じる恐れがある。"},
+            {id: "c5_q81", type: "exercise", chapter: 5, text: "Web アプリーケーション開発の実行環境は、オープンソース・ソフトウェアを中心とした「LAMP」で構築されることが多い。LAMPの組み合わせとして正しいのは、次のどれか。", options: ["Linux Apache HTTP Server Oracle PHP", "Windows Server Apache HTTP Server Oracle PHP", "Linux Apache HTTP Server MySQL PHP", "Unix Apache HTTP Server MySQL PHP"], answer: 2, explanation: "LAMPとは、OSである Linux、Webサーバーである Apache HTTP Server、RDBMSである MySQL、プログラミング言語である PHP (またはPerl、Python) の組み合わせである。"},
+            {id: "c5_q82", type: "exercise", chapter: 5, text: "クライアントサイドプログラミングに関する以下の文章が意味しているのは、次のどれか。\n「JavaScript から派生したデータ交換のための記述言語。XMLに比べ、軽量でJavaScriptとの相性が良いため、Ajaxを使ったコンテンツのデータ形式としてよく利用される。」", options: ["JScript", "JSON", "VBScript", "ActionScript"], answer: 1, explanation: "JSON (JavaScript Object Notation、ジェイソン)は、JavaScript から派生したデータ交換のための記述言語である。XMLに比べ、軽量でJavaScriptとの相性が良いため、Ajaxを使ったコンテンツのデータ形式としてよく利用される。"},
+            {id: "c5_q83", type: "exercise", chapter: 5, text: "サーバサイドプログラミングに関する説明として誤りと考えられるのは、次のどれか。", options: ["Web サーバー上にプログラムが置かれており、プログラムが処理結果とともに処理のためのプログラムをクライアント側に送信するため、出力されたHTMLを見ると実際にどのようなコードによって処理されたのかがわかる", "プログラムを利用する際には、Webサーバーにその言語の実行に必要なプラグインを導入するのが基本であり、例えばRubyで書いたプログラムを実行するには、Webサーバーに対応するプラグインを導入しておく", "プログラムの記述言語としては、PerlやJava、PHP、Ruby、Pythonなどが挙げられる", "プログラムの処理対象であるデータの保管や取得のためにはデータベースが必要であり、Webアプリケーション開発では特に、MySQLやPostgreSQLなどのRDBMSを利用するのが一般的"], answer: 0, explanation: "Web サーバー上にプログラムが置かれており、プログラムが処理結果だけをクライアント側に送信するため、出力されたHTMLを見ても実際にどのようなコードによって処理されたのかがわからない。ここが、クライアント側でコードが確認できるクライアントサイドプログラムとの大きな違いである。"},
+            {id: "c5_q84", type: "exercise", chapter: 5, text: "Webサイトに発生しうるセキュリティリスクに関して、以下の図のような状態を表しているのは、次のどれか。", image: "image_050711.png", options: ["ブルートフォース攻撃", "セッションハイジャック", "クロスサイトスクリプティング (XSS)", "クロスサイトリクエストフォージェリ (CSRF)"], answer: 2, explanation: "クロスサイトスクリプティング (XSS)は、Web サイトの入力フォーム実装の不備をついた攻撃方法である。攻撃対象とは別の Web サイトからのスクリプトを用いて、入力フォームに悪意のあるデータを挿入し、なりすましやウィルス感染などの被害をユーザーに及ぼす可能性がある。"},
+            {id: "c5_q85", type: "exercise", chapter: 5, text: "デジタルサイネージの説明として正しいのは、次のどれか。", options: ["インターネットでの映像送信用に開発されたビデオカメラので、インターネットでの視聴には問題のない品質での録画が可能であり、ノートパソコンなどに内蔵されていることも多い", "屋外、店頭、交通機関などのさまざまな場所で、ネットワークに接続したディスプレイなどの電子的な表示機器を使って情報を発信するシステム", "ソフトウェアを固有のコンピュータで動くものではなく、インターネットから提供するサービスとする考え方", "人が知覚できる現実環境をコンピュータによって拡張する技術や、拡張された現実環境そのものを意味する言葉"], answer: 1, explanation: "デジタルサイネージ (Digital Signage)は、直訳すれば「電子看板」となる。屋外、店頭、交通機関などのさまざまな場所で、ネットワークに接続したディスプレイなどの電子的な表示機器を使って情報を発信するシステムの総称である。"},
+            
+            // 第6章
+            {id: "c6_q86", type: "exercise", chapter: 6, text: "Webマーケティングに関する説明として正しいと考えられるのは、次のどれか。", options: ["一般的に、広報は「料金を払ってメディアに掲載してもらう活動」であり、発信者は出稿主となる一方、広告は「情報をメディアに取り上げてもらう活動」であり、発信者はメディアとなる", "広報は主に新規顧客に、広告は主に既存顧客に向けた施策となり、逆の組み合わせで実施するのは難しい", "記事広告は、メディアに料金を払って作成してもらう、自社の製品やサービスに関する記事の体裁の広告であり、記事と区別されないように「広告」 「PR」などのクレジットは入らない", "直接的な顧客獲得活動ではないが、ブログ、カスタマーレビュー、クチコミサイト、比較サイト、Q&Aサイトなどを日常的にチェックし、適切に対応することも、大切な広報活動のひとつである"], answer: 3, explanation: "広報は「情報をメディアに取り上げてもらう活動」である。広報は主に既存顧客に、広告は主に新規顧客に向けた施策となるが、戦略的に逆の組み合わせで実施するなども必要である。直接的な顧客獲得活動ではないが、ブログ、カスタマーレビューなどを日常的にチェックし、適切に対応することも、大切な広報活動のひとつである。"},
+            {id: "c6_q87", type: "exercise", chapter: 6, text: "Webマーケティングで用いられる指標を表す以下の図の空欄(A)(B)(C)(D)に入る用語の組み合わせとして正しいのは、次のどれか。", image: "image_050731.png", options: ["A: CTR B: CVR C: CPC D: CPA", "A: CTR B: CVR C: CPA D: CPC", "A: CVR B: CTR C: CPA D: CPC", "A: CVR B: CTR C: CPC D: CPA"], answer: 0, explanation: "広告評価指標として、クリック数をインプレッション数で割れば CTR (Click Through Rate、クリック率)が、コンバージョン数をクリック数で割れば CVR (Conversion Rate、コンバージョン率)が出る。投資収益率指標として、出稿コスト (広告費)をクリック数で割れば CPC (Cost Per Click)が、出稿コストをコンバージョン数で割れば CPA (Cost Per Acquisition/Action) が出る。"},
+            {id: "c6_q88", type: "exercise", chapter: 6, text: "インターネット広告には多様な種類がある。以下の文章が意味している広告は、次のどれか。\n「ページ遷移時にはさみ込まれる広告や、アプリでフルスクリーンで表示される広告のこと。例えば、ニュースサイトの記事ページに移動するタイミングで表示されたり、数ページにわたる記事の途中で表示される広告が該当する。」", options: ["トゥルービュー広告", "リスティング広告", "インタースティシャル広告", "記事広告"], answer: 2, explanation: "インタースティシャル広告は、ページ遷移時にはさみ込まれる広告や、アプリでフルスクリーンで表示される広告のこと。例えば、ニュースサイトの記事ページに移動するタイミングで表示されたり、数ページにわたる記事の途中で表示される広告が該当する。「トランジショナル広告」とも呼ばれる。ページ遷移時に広告がモーダルウィンドウで表示される 「フローティング広告」などもある。"},
+            {id: "c6_q89", type: "exercise", chapter: 6, text: "インターネット広告の効果を高めるために適切でないと考えられるのは、次のどれか。", options: ["適切なユーザー層が集まるWebサイトやカテゴリーに広告を出稿することで効果が高まる", "ディスプレイ広告には掲載サイトを指定する「プレースメント」いう機能がある", "広告のコピーライティングでは、続きが気になるようなメッセージや問いかけではなく、抽象的なメッセージがよいとされている", "画像広告では、その製品やサービスに興味を持ってもらえるよう、一定のインパクトを備えているのが望ましい"], answer: 2, explanation: "インターネット広告のコピーライティングでは、続きが気になるようなメッセージや問いかけが効果的といわれる。抽象的なメッセージで消費者の興味を喚起する方法もあるが、検索性などを考えると、具体的なメッセージを軸に広告を構成するのがよい。"},
+            {id: "c6_q90", type: "exercise", chapter: 6, text: "リスティング広告の順位決定の仕組みとは無関係と考えられるのは、次のどれか。", options: ["広告の総予算", "入札単価", "広告とリンク先ページの品質", "広告表示オプション"], answer: 0, explanation: "リスティング広告の順位決定には、入札単価(入札価格)、広告とリンク先ページの品質、広告表示オプションの3つが大きく関わっている。広告の総予算については、順位決定に直接的な関係はない。"},
+            {id: "c6_q91", type: "exercise", chapter: 6, text: "リスティング広告の対象範囲を示す以下の図の空欄(A) (B) (C) (D)に入る言葉の組み合わせとして正しいのは、次のどれか。", image: "image_050750.png", options: ["A: キャンペーン B: アカウント C: 広告グループ D: 広告", "A: アカウント B: キャンペーン C: 広告グループ D: 広告", "A: 広告グループ B: アカウント C: キャンペーン D: 広告", "A: アカウント B: 広告グループ C: 広告 D: キャンペーン"], answer: 1, explanation: "リスティング広告では、企業名やブランド名をもとに「アカウント」を作成し、その中に「キャンペーン」の種類を設定する。次に、キャンペーンの中に「広告グループ」、広告グループの中に具体的な「広告」を設定する。"},
+            {id: "c6_q92", type: "exercise", chapter: 6, text: "ソーシャルメディアマーケティングでもよく用いられる、「認知や対話によって企業や商品に対する信頼感や愛着を醸成する」という意味の用語は、次のどれか。", options: ["ロイヤルティ", "リライアンス", "コンバージョン", "エンゲージメント"], answer: 3, explanation: "エンゲージメントは、元々は英語で「約束」「契約」「婚約」という意味。企業やブランド、商品やサービスに対する信頼、愛着など、感情的な影響を重視してユーザーとの関係を築くこと。ソーシャルメディアマーケティングを行う大きな目的のひとつである。"},
+            {id: "c6_q93", type: "exercise", chapter: 6, text: "ソーシャルメディアの運用を評価するための定量データに当てはまるものは、いくつあるか。\n・ソーシャルメディアから Webサイトへのトラフィック数の増減\n・ソーシャルメディア経由のコンバージョン数の増減\n・フォロワー数の増減\n・エンゲージメント(アクション)の増減\n・リマーケティングリストの増減", options: ["2つ", "3つ", "4つ", "すべて"], answer: 3, explanation: "ソーシャルメディアの運用は、定量データと定性データの両面から評価する。定量データには、例えば「ソーシャルメディアから Web サイトへのトラフィック数の増減」 「ソーシャルメディア経由のコンバージョン数の増減」 「フォロワー数の増減」 「エンゲージメント (アクション)の増減」「リマーケティングリストの増減」がある。つまり、5つすべてが当てはまる。"},
+            {id: "c6_q94", type: "exercise", chapter: 6, text: "動画マーケティングにおいて、YouTubeにチャンネルを開設し、動画をアップロードするのが一般的である。以下のメリットのうち正しいと考えられるものは、次のどれか。\nA: YouTube内での検索によって、多くの人に発見してもらえる可能性が高まる\nB: YouTube 側で、多様なユーザー環境に対応した複数の動画フォーマットを自動生成してくれる\nC: チャンネルの登録者やファンが増えるなど、顧客との中長期的な関係を築ける\nD: いいねやコメント、視聴数などのエンゲージメントに関する数値が可視化でき、統計情報も得られる", options: ["AとBとCが正しい", "BとCとDが正しい", "AとCとDが正しい", "すべて正しい"], answer: 3, explanation: "YouTube にチャンネルを開設し、動画をアップロードするメリットとしては、「YouTube内での検索による発見可能性」「YouTube 側で複数の動画フォーマットを自動生成」 「チャンネルの登録者やファンとの関係づくり」 「エンゲージメントに関する数値の可視化と統計情報の入手」のすべてが当てはまる。"},
+            {id: "c6_q95", type: "exercise", chapter: 6, text: "SEO(検索エンジン最適化)に関する説明として誤りと考えられるのは、次のどれか。", options: ["検索結果画面には1ページに10件ずつ表示されるが、クリック率は順位1位から加速度的に下がっていくこと、80%のユーザーが検索結果の2ページ目までしか見ないといわれていることから、一定以上の順位に表示されないと多数の集客は望めない", "たとえ上位に表示されたとしても、訪問後のコンバージョンや目標達成に向けた数値の向上につながらなければ意味がないため、単に検索順位だけを追うだけでなく、訪問後、ユーザーにどのような体験を提供できるかが問われる時代である", "検索サービスは、クローラーと呼ばれる自動巡回ロボットによってインターネット上の情報を収集、データベースに保存し、5つの評価方法のみによって、入力されたキーワード(クエリ)に対する検索順位を決定する", "検索履歴や検索場所に応じて、ユーザーそれぞれに最適な検索結果が表示されるようになっていること、評価のためのアルゴリズムがたびたび刷新されていることから、最新動向に注目しつつ、Webサイトと個々のページを継続的に改善することが大切である"], answer: 2, explanation: "代表的な検索サービスのひとつであるGoogleでは、非常に多くの(200以上とされる) 評価方法で、入力されたキーワード (クエリ) に対する検索順位を決定しているといわれる。"},
+            {id: "c6_q96", type: "exercise", chapter: 6, text: "LPO (ランディングページ最適化)では、直帰率や離脱率の改善が求められるケースがある。離脱率の説明として正しいのは、次のどれか。", options: ["Webサイト内のあるページにアクセスする前に、検索結果画面でそのページの存在を認識したものの、他のサイトのページにアクセスした割合である", "Web サイト内のあるページにアクセスした後、そのまま画面を閉じたり、他のサイトに移動した割合である", "Web サイト内のページを複数閲覧した後、そのページを最後に画面を閉じたり、他のサイトに移動した割合である", "Webサイト内のページを複数閲覧した後、トップページに移動した割合である"], answer: 1, explanation: "離脱率とは、Web サイト内のページを複数閲覧した後、画面を閉じたり、他のサイトに移動した割合である。例えば、ユーザーがランディングページに到達後、申し込みページなどに遷移したが、途中でやめてしまった場合に「離脱」となる。"},
+            {id: "c6_q97", type: "exercise", chapter: 6, text: "オウンドメディアの運用について誤りと考えられる説明は、次のどれか。", options: ["企業サイトなどでは行えないさまざまな角度から、製品やサービスの魅力を伝えることが大切である", "従来のブログのように年月日に基づいて記事を集積するタイプは少なく、専用の高度なシステムが必要とされるケースが多い", "充実したコンテンツを蓄積することで、そのコンテンツやサイト全体の価値が高まり、検索エンジンなどからの中長期的な集客増につながる", "短期の集客効果を期待するのであれば、広告の配信、SNSの投稿キャンペーンの実施、大手メディアへの記事広告の出稿などを行ったほうがよく、オウンドメディアは適さない"], answer: 1, explanation: "オウンドメディアは、ブログのように年月日に基づいて記事を集積するタイプが多く、特に複雑なシステムが必要とされるケースは少ない。"},
+            {id: "c6_q98", type: "exercise", chapter: 6, text: "アクセス解析や運用上の効果測定に関する以下の用語と説明の組み合わせとして適切なのは、次のどれか。\n<用語>\nA: Google Search Console\nB: Google アナリティクス\nC: Googleタグマネージャ\n<説明>\nD: トラッキングコード、コンバージョンタグ、リマーケティングタグなどの複数のタグを一元管理するツールである\nE: Web サイト管理者向けのツールであり、主に「検索パフォーマンス」「インデックス作成」「エクスペリエンス」の3カテゴリーのデータが見られる\nF: Webビーコン型のアクセス解析ツールであり、主に「ユーザー」「ライフサイクル」 「リアルタイム」「広告」という角度からさまざまなデータが見られる", options: ["AとF BとD CとE", "AとE BとF CとD", "AとD BとE CとF", "AとE BとD CとF"], answer: 1, explanation: "Google Search Console は Web サイト管理者向けのツールであり、主に「検索パフォーマンス」「インデックス作成」 「エクスペリエンス」の3カテゴリーのデータが見られる。GoogleアナリティクスはWebビーコン型のアクセス解析ツールであり、主に「ユーザー」 「ライフサイクル」「リアルタイム」 「広告」という角度からさまざまなデータが見られる。Googleタグマネージャはトラッキングコード、コンバージョンタグ、リマーケティングタグなどの複数のタグを一元管理するツールである。"},
+            {id: "c6_q99", type: "exercise", chapter: 6, text: "Google アナリティクスの機能に関する説明として誤りと考えられるのは、次のどれか。", options: ["コンバージョン経路: コンバージョンに至るまでの複数の接点を分析する機能", "エンゲージメント: ユーザーのSNSでの反応数やフォロー数を見る機能", "探索: 標準レポートにはない切り口でレポートを生成する機能", "収益化:ユーザーの購入回数や平均購入金額、購入経路などが見られるEC向けの機能"], answer: 1, explanation: "エンゲージメントは、イベントごとの発生数、コンバージョン数、ランディングページ一覧などを見る機能である。"},
+            {id: "c6_q100", type: "exercise", chapter: 6, text: "Google ビジネスプロフィールのメリットとして誤りと考えられるのは、次のどれか。", options: ["正確な情報の伝達", "新規顧客へのアピール", "商品・サービスの販売", "ユーザーとのコミュニケーション"], answer: 2, explanation: "Google ビジネスプロフィールのメリットは、主に「正確な情報の伝達」「新規顧客へのアピール」「ユーザーとのコミュニケーション」である。「商品・サービスの販売」を直接行うことはできない。"},
+            
+            // 模擬試験 (全85問)
+            {
+                id: 'm7_q1', type: 'mock', chapter: 0,
+                text: '1989年から1990年にかけて、現在のWWWの原型となるハイバーテキストを元にした新しい情報管理や共有の仕組みを提案した人物は、次のどれか。',
+                options: ['マーク・アンドリーセン', 'ティム・バーナーズーリー', 'テッド・ネルソン', 'ダグラス・エンゲルバート'],
+                answer: 1, explanation: '確認できませんでした'
+            },
+            {
+                id: 'c7_q2', type: 'mock', chapter: 0,
+                text: 'インターネット上で利用されるプロトコルである「FTP」の説明として正しいのは、次のどれか。',
+                options: ['Webブラウザからの要求に応じて、WebサーバーからHTMLなどのデータを転送する際に使われるプロトコル', 'ネットワークに接続された個々のネットワークや機器などに固有の識別番号を割り当て、それを元に宛先を指定して転送する際に使われるプロトコル', 'Webサイト用のファイルなどのデータをWebサーバーに転送する際に使われるプロトコル', '電子メールアプリケーションからメールサーバーへのデータ転送や、メールサーバー同士のデータの送受信のためのプロトコル'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm7_q3', type: 'mock', chapter: 0,
+                text: 'W3Cからは、Webサイト制作に直接関係するさまざまな技術仕様が公開されている。確定した技術仕様の名称として用いられているものは、次のどれか。',
+                options: ['勧告', '草案', '仕様書', '技術書'],
+                answer: 0, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm7_q4', type: 'mock', chapter: 0,
+                text: 'Webブラウザやデータ処理に関する用語と説明の組み合わせとして適切なのは、次のどれか。\n<項目>\nA: クローラー\nB: レンダリングエンジン\nC: プラグイン\n<説明>\nD: Webブラウザで、基本機能に特殊機能を追加するためのプログラムであり、あるフォーマットに基づくドキュメントやインタラクティブコンテンツを表示するために、インストールが必要なケースがある\nE: 検索エンジンがインターネット上の情報を収集するために使用しているインデックス作成用プログラムであり、Webサイトをくまなく巡回することからこの名前がついている\nF: Webブラウザが備える、Webサーバーから取得したHTMLやJavaScript、ビジュアルデータなどを処理し、可視化する実行プログラムである',
+                options: ['AとD、BとE、CとF', 'AとE、BとF、CとD', 'AとF、BとD、CとE', 'AとE、BとD、CとF'],
+                answer: 1, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm7_q5', type: 'mock', chapter: 0,
+                text: 'スマートフォンやタブレットなどモバイル端末でのブラウジングを想定したWebサイト制作手法のひとつ「レスポンシブWebデザイン」がある。その説明として適切でないと考えられるのは、次のどれか。',
+                options: ['想定するすべてのデバイスに対して同一のWebサイトを提供しつつ、CSSやJavaScriptで表示や動作を調整する方法である', 'ユーザーエージェント分岐によって、出力するコンテンツを切り替えたり、一部のインターフェイスを切り替えるケースがある', '端末のOSやWebブラウザのバージョンなどに基づくバグや実装不備に、ユーザーエージェント分岐で対応することがある', 'レスポンシブWebデザインに基づいて制作されたサイトは、スマートフォンでは専用のアプリのみで表示されるため、表示速度が速く、操作性が非常に高い'],
+                answer: 3, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm7_q6', type: 'mock', chapter: 0,
+                text: 'Webサーバーの環境整備に関する説明として正しいと考えられるのは、次のどれか。',
+                options: ['サーバーとなるコンピュータは基本的にハードウェアとOSによって構成されておらず、われわれが使うクライアントコンピュータとは大きく異なる', 'サーバーとしての能力を最大限に発揮するために、GUIしか搭載されておらず、コマンドライン入力では操作できないサーバーOSがほとんどである', 'サーバー OSは、Linuxなどのオープンソースや、IISに含まれるWindows Server OSが代表的であり、オープンソースの場合は運用費が高額になる点に注意する', '仮想化されたサーバーインフラをオンデマンドで利用できるAWS (Amazon Web Services) などのクラウドサービスも広く利用されている'],
+                answer: 3, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm7_q7', type: 'mock', chapter: 0,
+                text: 'インターネットの通信を安全に行うため、高度に暗号化された情報を送受信する通信方法を何というか。',
+                options: ['WIDE', 'TCP', 'SSL', 'SCP'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm7_q8', type: 'mock', chapter: 0,
+                text: 'インターネットの犯罪目的での利用に関する以下の文章について、空欄 (A) (B) (C) に当てはまる言葉の正しい組み合わせは、次のどれか。\n「インターネットが(A)を用いたネットワークにつながれている以上、悪事を働いた者の特定は可能ではあるものの、フリーメールアドレスや ( B ) を利用したり、サイトの公開と移転を繰り返すなど、個人を特定されにくくする方法や、規制される前に商品を売るなど法律の抜け穴を利用した行為がありうる。こうした被害から消費者を守る手段として、(C)がたびたび改正され、販売者の情報や返品方法に関する情報の開示が運営者に義務づけられていたり、各都道府県の警察がサイバー犯罪対策部署を設けて事件の対応にあたっている。」',
+                options: ['A: IPアドレス B: 匿名プロキシ C: 特定商取引法', 'A: IPアドレス B: 匿名プロキシ C: 個人情報保護法', 'A: 匿名プロキシ B: IPアドレス C: 特定商取引法', 'A: 匿名プロキシ B: IPアドレス C: 個人情報保護法'],
+                answer: 0, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm7_q9', type: 'mock', chapter: 0,
+                text: '現在、ECサイトの中には、ユーザーの力を利用し、マスプロモーション手法では行きとどかないニッチ商品の販促を行い、結果として商品売り上げを高めているところがある。このように、数多くのニッチ商品が少数ながら売れていく状況を表す言葉は、次のどれか。以下の図を参考に答えなさい。',
+                image: 'image_050b6a.png',
+                options: ['クリックテール', 'ロングテール', 'ヘッドテール', 'ショートテール'],
+                answer: 1, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm7_q10', type: 'mock', chapter: 0,
+                text: 'コミュニケーション手段としてのWebに関連して、以下の文章が意味しているものは、次のどれか。\n「消費者自身が内容を生成していくメディアのこと。ニッチな得意分野の知識を発信したり、宣伝ではない ユーザーとしての意見を書いた集積が、マスメディアと別の存在価値を作り上げ、新しいメディアとして認知されている。」',
+                options: ['ブログ', 'SNS', 'マイクロブログ', 'CGM'],
+                answer: 3, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm7_q11', type: 'mock', chapter: 0,
+                text: 'マーケティングとしてのWebに関する文章として誤りと考えられるのは、次のどれか。',
+                options: ['2010年、世界ではじめて、アメリカのオンラインマガジン HuffPostに電話会社AT&Tのバナー広告が掲載されて以降、多様な広告手法が生まれている。', '検索機能も不十分な時期のインターネットでは、ポータルサイトに表示されるバナー広告は、不特定多数にサービスを認知させ、Webサイトへ誘導するために大きな役割を果たしていた', 'CGMの隆盛によって、Webサイトのトラフィックがブログなどに分散し始めたことが理由のひとつとなり、従来のバナー広告以外の新しい広告手法が生まれることとなった', 'Webサイトを利用した広告の特徴は、アクセス解析などを利用して効果が定量的に計測できることであり、広告の成果も定量的に計測し、評価できる'],
+                answer: 0, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm7_q12', type: 'mock', chapter: 0,
+                text: 'Webマーケティングでしばしば利用される 「ティーザーサイト」を説明した文章は、次のどれか。',
+                options: ['Webサイトのインデックスや主要なニュース、天気などの生活情報を一か所にまとめたサイト', '企業の製品やサービスの認知や理解促進のために、ポータルサイトやニュースサイトの記事として配信されるもの', '発売前の商品やサービスの情報を小出しに提供し、ユーザーの興味を喚起する広告的なサイト', '掲載するコンテンツとしてストリーミング動画に特化したサイト'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm7_q13', type: 'mock', chapter: 0,
+                text: '電通「2022年(令和4年) 日本の広告費」によれば、2017年から2022年まで5年連続で、総広告費に占める割合が増加しつづけている媒体は、次のどれか。',
+                options: ['テレビ', '新聞', '雑誌', 'インターネット'],
+                answer: 3, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm7_q14', type: 'mock', chapter: 0,
+                text: '2021年と2022年のB2C-EC市場規模および各分野の構成比率に関する以下の図について、2021年から2022年の推移として当てはまると考えられる説明は、次のどれか。',
+                image: 'image_050b8c.png',
+                options: ['市場規模は小さくなっている', '物販系分野のシェアは大きくなっている', 'サービス分野のシェアは大きくなっている', 'デジタル分野のシェアは大きくなっている'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm7_q15', type: 'mock', chapter: 0,
+                text: 'インターネットのビジネスモデルに関する種類と収益化手法の組み合わせとして正しいのは、次のどれか。\n<項目>\nA:EC販売収益モデル\nB:企業・サービスプランディングモデル\nC:広告収益モデル\nD: コンテンツ/サービス課金モデル\n<說明>\nE:一般ユーザーまたは特定セグメントのユーザーを集客し、各ターゲットへの広告掲載を行うことで、広告主から収益を得る\nF: コンテンツのダウンロードやサービスの利用に対して、定額または従量課金を行い、ユーザーから収益を得る\nG: 自社商品または仕入商品を販売し、その販売マージンを得る\nH: インターネットを使って企業や自社展開サービス・商材のプレゼンスとロイヤリティの向上を図り、間接的に収益アップに貢献する',
+                options: ['AとG、BとE、CとF、DとH', 'AとG、BとH、CとE、DとF', 'AとF、BとE、CとG、DとH', 'AとF、BとH、CとE、DとG'],
+                answer: 1, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q16', type: 'mock', chapter: 0,
+                text: '他のメディアと大きく異なるインターネットの特性とは考えられないものは、次のどれか。',
+                options: ['受動性', '検索性', 'リピート性', '双方向性'],
+                answer: 0, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q17', type: 'mock', chapter: 0,
+                text: 'Webページのメタデータフォーマットに含まれないものは、次のどれか。',
+                options: ['RSS', 'XMLサイトマップ', 'OGP', 'AAC'],
+                answer: 3, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q18', type: 'mock', chapter: 0,
+                text: 'インターネットに接続可能な端末として、以下の特徴を備えると考えられるのは、次のどれか。\n・画面の大型化・高解像度化により、見やすさが年々向上している\n・さまざまなアプリを用いて、自分にとって快適なコミュニケーション環境を整えられる\n・ビジネスでは業種によっては個人単位の普及\n・プライベートでは個人単位の普及',
+                options: ['パソコン', 'スマートフォン', 'タブレット', 'キオスク端末'],
+                answer: 1, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q19', type: 'mock', chapter: 0,
+                text: 'スマートフォンアプリに関する以下の文章について、空欄(A) (B) に当てはまる言葉の正しい組み合わせは、次のどれか。\n「スマートフォンアプリの課金の方法は複数ある。アプリの入手自体に自由な課金額を設定できるだけでなく、新たなコンテンツや追加オプションなどを直接販売する ( A ) も行える。また、月額課金や年額課金、いわゆる (B) も可能である。」',
+                options: ['A:アプリ内課金 B: サブスクリプション', 'A:アプリ内課金 B: リサインイン', 'A: イージーペイメント B: サブスクリプション', 'A: イージーペイメント B: リサインイン'],
+                answer: 0, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q20', type: 'mock', chapter: 0,
+                text: 'ウェアラブルデバイスのひとつであるスマートウォッチ全般の特徴として正しいと考えられるものは、次のどれか。',
+                options: ['搭載されているOSはwatchOSのみである', '形状は四角形のみである', 'スマートフォンと連動できない', 'ヘルスケア機能が広く利用されている'],
+                answer: 3, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q21', type: 'mock', chapter: 0,
+                text: '電子書籍のフォーマットのひとつであるEPUBの説明として誤りと考えられるものは、次のどれか。',
+                options: ['IDPF (International Digital Publishing Forum) が策定している標準仕様である', '内容としては、XHTMLファイル、CSSファイル、METAファイルで構成される', 'リフロー型のみが制作でき、非リフロー型(フィックス型)は制作できない', '日本電子書籍出版社協会が「電書協 EPUB3 制作ガイド」というガイドラインを公表している'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q22', type: 'mock', chapter: 0,
+                text: 'コーポレートコミュニケーションにおけるPR活動の例に当てはまらないものは、次のどれか。',
+                options: ['メディアへの広報活動', '社員向けの社内報の発行', 'Webサイトでの活動紹介', 'プレスリリースの発信'],
+                answer: 1, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q23', type: 'mock', chapter: 0,
+                text: '企業や組織のCSRについて誤りと考えられる説明は、次のどれか。',
+                options: ['企業や組織が自身の利益追求だけでなく、さまざまな活動を通して社会に与える影響に責任を持つことを指す', 'ISO(国際標準化機構)が「社会的責任」の呼称で「ISO 26000」を2010年11月1日に発行した', '市場がグローバル化する中で、地域社会との共生を図り企業のブランド価値を高めていくことが、企業戦略の必須事項となっている', '近年では、インターオペラビリティやDGSCという言葉で、同様の活動や、さらに世界標準を意識した活動を行う企業が多い'],
+                answer: 3, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q24', type: 'mock', chapter: 0,
+                text: 'ECビジネスにおける「フルフィルメント」の説明として正しいのは、次のどれか。',
+                options: ['商品計画や品揃えのこと', '差別化要素のない日用品や消費財のこと', '物流、受注、決済、配送、アフターフォローなどのこと', '売り場のコンセプト作りのこと'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q25', type: 'mock', chapter: 0,
+                text: '個人情報保護法の「個人情報」の定義として適切でないものは、次のどれか。',
+                options: ['生存している個人、および、過去に生存していた個人に関する情報が対象となる', '特定の個人を識別できる情報が個人情報である', '氏名、生年月日、住所、メールアドレスなどが個人情報に該当する', '学籍番号のようなものであっても、他の情報と照合することで、容易に個人を識別できる情報も個人情報に含まれる'],
+                answer: 0, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q26', type: 'mock', chapter: 0,
+                text: '著作権に関する説明として正しいのは、次のどれか。',
+                options: ['著作権が認められる表現形式は、音楽、絵画、写真のみに限られる', '日本は国際的な条約である「ベルヌ条約」に批准しておらず、著作権の登記を必要する方式主義に基づく', '著作者人格権と著作財産権は必ずしも同一人物が保有しているわけではない', '著作者人格権は譲渡不可で、その権利は恒久的なものである'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q27', type: 'mock', chapter: 0,
+                text: 'クリエイティブ・コモンズの以下のライセンス表示が意味するものは、次のどれか。',
+                image: 'image_050e50.png',
+                options: ['原作者のクレジットを表示し、作品を改変しない条件で、営利目的で利用できる', '原作者のクレジットを表示し、二次創作物にも同じ条件を継承すれば、改変や営利目的での二次利用ができる', '原作者のクレジットを表示し、かつ、非営利目的であれば、改変したり再配布することができる', '原作者のクレジットを表示すれば、改変や営利目的での二次利用ができる'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q28', type: 'mock', chapter: 0,
+                text: 'インターネットビジネスにおけるプロジェクトマネジメントに関する説明文として誤りと考えられるものは、次のどれか。',
+                options: ['プロダクトの観点から見た場合、WebサイトやWebサービスなどの成果物は、フロントエンドとバックエンドを含めた「ソフトウェア」である', '他の製造業と比べて、人件費のコスト比率が非常に小さい', '要件や最終成果物の部分変更が頻繁に行われることが多く、当初に想定していたコストの変動が起こりやすい', 'プロジェクトマネジメントの専門担当者を、プロジェクトマネージャー (PM) と呼ぶことが多い'],
+                answer: 1, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q29', type: 'mock', chapter: 0,
+                text: 'Webサイト制作の予算設定に関する以下の文章について、空欄(A) (B) に当てはまる言葉の正しい組み合わせは、次のどれか。\n「一般的には、例えばテンプレートを元にしたHTMLの量産、イメージの単純加工など、それほど属人的な高い能力を必要としない単純作業については (A)の費用計上が行われる一方、作業者によってクオリティが変わるような高度、複雑な作業については(B)での計上が多い。」',
+                options: ['A:比較単位 B:数量単位', 'A:数量単位 B:比較単位', 'A:数量単位 B:期間単位', 'A:期間単位 B:数量単位'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q30', type: 'mock', chapter: 0,
+                text: 'Webサイト制作におけるスタッフの一般的な肩書と役割に関する以下の図について、空欄(A) (B) (C) に当てはまる言葉の正しい組み合わせは、次のどれか。',
+                image: 'image_050e6f.png',
+                options: ['A: UIデザイナー B: フロントエンドエンジニア C: クリエイティブディレクター', 'A: インフォメーションアーキテクト B: マークアップアナリスト C: クリエイティブディレクター', 'A: フロントエンドエンジニア B: インフォメーションアーキテクト C: マーケター', 'A: インフォメーションアーキテクト B: フロントエンドエンジニア C: マーケター'],
+                answer: 3, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q31', type: 'mock', chapter: 0,
+                text: 'リソース管理に関する用語と説明の組み合わせとして誤りと考えられるのは、次のどれか。',
+                options: ['データセンター: 各種のコンピュータやデータ通信などの装置を設置・運用することに特化した建物や設備の総称で、ユーザーや企業からデータを預かり、保守・運用サービスなどを提供している', 'ライツマネージド: 著作物を特定の期間や回数を定めて貸し出す方式で、期間や回数以外にも、使用媒体や用途、地域、独占的利用など、さまざまな付帯事項を設定できる場合がある', 'ソフトウェア: 各スタッフの作業に必要な機材はもとより、Webサイトを運営するのに必要なサーバー、トラフィックの負荷分散システムやルーターなどが該当する', 'ライセンス:無形財の著作者が購入者に許諾する使用権利のことで、インターネットビジネスにおいては、その著作物をインストールするハードウェア台数やユーザー数、利用箇所を単位とした契約が一般的である'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q32', type: 'mock', chapter: 0,
+                text: 'スケジュール管理手法のひとつである「ガントチャート」に当てはまらない説明は、次のどれか。',
+                options: ['WBSで作成されたタスクにかかる所要日数をプロットしていき、タスクの完了目標日を明らかにして進捗度を把握する方法', '計画と実際の進捗の差異がわかりやすく、調整すべきタスクが見つけやすい', '各タスク間の相関性、依存性を明らかにして、重複進行できるタスクや余裕のないタスクを明らかにできる', '実際の作業日程だけでなく、関係者の確認に要する日数やフィードバックの対応日数なども含めた所要日数を算出しておくことが重要である'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q33', type: 'mock', chapter: 0,
+                text: 'Webサイトの運営におけるPDCAサイクルについて、「実績値が目標値を上回っている場合にはそのまま継続し、目標を下回っている場合には原因を突き止め、改善案や追加施策を立てる」という作業を実施するのは、次のどの段階か。',
+                options: ['Plan', 'Do', 'Check', 'Act'],
+                answer: 3, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q34', type: 'mock', chapter: 0,
+                text: 'Webサイト制作プロジェクトにおける以下の図について、空欄(A) (B) (C) (D)に当てはまる言葉の正しい組み合わせは、次のどれか。',
+                image: 'image_050e8f.png',
+                options: ['A:保守・運用フェーズ B: 企画フェーズ C: 設計フェーズ D: 制作フェーズ', 'A:企画フェーズ B: 設計フェーズ C: 制作フェーズ D: 保守・運用フェーズ', 'A: 設計フェーズ B: 制作フェーズ C: 保守・運用フェーズ D: 企画フェーズ', 'A: 制作フェーズ B: 保守・運用フェーズ C: 企画フェーズ D: 設計フェーズ'],
+                answer: 1, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q35', type: 'mock', chapter: 0,
+                text: 'Webサイトの現状分析における「ベンチマーキング」の正しい説明は、次のどれか。',
+                options: ['メニューやボタンなどの表記を考えること', '成功している事例の調査分析を行い、そこから成功因子を学び取ること', 'Webページで最も訴えたいものを、広いエリアを使ってアピールすること', 'コンテンツのエリア分けや情報配置を行うこと'],
+                answer: 1, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q36', type: 'mock', chapter: 0,
+                text: 'Webサイトのエキスパートによる評価手法のひとつとして、検証すべき評価項目をリストにまとめて、その項目に沿ってWebサイト全体をチェックしていく手法は、次のどれか。',
+                options: ['ユーザーテスト', 'アンケート', 'ウォークスルー評価', 'ヒューリスティック評価'],
+                answer: 3, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q37', type: 'mock', chapter: 0,
+                text: 'Webサイトのゴール設定に関する以下の文章について、空欄(A) (B) (C)に当てはまる言葉の正しい組み合わせは、次のどれか。\n「事業者が抱いている(A)は、インタビューや考察によって、より具体的で検証可能なゴールに落とし込んでいくことが大切である。今日のビジネスでは、事業者のみが満足することで最終目標を達成できることは少ない。ターゲットユーザーもまた自身の目標や望みを達成できることがなければ真の成功はない。Webサイトのゴール設定でも、事業者から見たゴールと、ターゲットユーザーから見たゴールの2つを考える必要がある。前者のゴールは(B)によって、後者のゴールは(C)によってプライオリティづけをする。」',
+                options: ['A: 明確な目的 B: 価値提供視点 C: ユーザーニーズ視点', 'A: 明確な目的 B: ユーザーニーズ視点 C:価値提供視点', 'A:観念的な目的 B:価値提供視点 C: ユーザーニーズ視点', 'A:観念的な目的 B: ユーザーニーズ視点 C:価値提供視点'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q38', type: 'mock', chapter: 0,
+                text: 'Webサイトのコンテンツとして、キャンペーンサイトやランディングページを企画することがある。両者に関する説明として正しいと考えられるのは、次のどれか。',
+                options: ['キャンペーンサイトは、主に広告をクリックしたあとの着地を前提にし、Webサイト内の通常のページとは異なり、回遊性などはほぼ考えず、ユーザーの行動(コンバージョン) につなげるための情報を軸に構成する', 'ランディングページは、製品やサービスの周知や話題性を目的として制作するものであり、新規ドメインやサブドメインで大規模に展開する場合や、既存サイトの中でシンプルに展開する場合がある', 'キャンペーンサイトの企画では、製品やサービスの周知を目的として制作することはほぼなく、テクノロジー面での実現可能性も含めて、新規性のある手法や視覚表現をきっかけに、コンテンツを考案するケースはない', 'ランディングページの企画では、ビジュアルを多用し、強いインパクトやメッセージ性を優先したり、リスティング広告やソーシャルメディア広告、クロスメディアで展開する場合はマス広告やチラシなどの紙の広告からの導線設計も踏まえて、適切なコンテンツを考案する'],
+                answer: 3, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q39', type: 'mock', chapter: 0,
+                text: 'Webサイトのコンテンツ企画に関する説明として誤りと考えられるのは、次のどれか。',
+                options: ['公開後にほぼ変更しないコンテンツは、公開までに完成度を高めるのではなく、いつでも修正できるというWebページの利点を活かし、公開後に段階的に完成度を高める', 'コンテンツを生み出し、更新していくにはさまざまな工夫が必要であり、計画性をもって進めるのがよい', 'コンテンツの掲載に関する許可の必要性、著作権、肖像権、素材の使用許諾や利用条件などのチェック、流用や不備などに関するガイドラインや対応策の整備が重要', 'オウンドメディアは特に、「コンテンツマーケティング」の文脈で語られるとおり、ソーシャルメディアでの反響やコンバージョン数など、マーケティング視点での目標値を設定することが大切'],
+                answer: 0, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q40', type: 'mock', chapter: 0,
+                text: 'Webサイトのコンテンツの存在を、一般の人に広めるための仕組みとして直接関係がないものは、次のどれか。',
+                options: ['OGP', '構造化データ', 'リッチスニペット', 'WBS'],
+                answer: 3, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q41', type: 'mock', chapter: 0,
+                text: 'Webサイトの設計フェーズでの作業として誤りと考えられるのは、次のどれか。',
+                options: ['フロントエンド技術として、HTMLやCSSをどのような方針で用いるのか、インタラクティブな表現の手段としてJavaScriptやライブラリをどのように用いるのか、ローカルの開発環境はどう準備するのかなどを考える', 'バックエンド技術として、どのプログラム言語とデータベースシステムを用いるのか、予想される負荷に対して要求されるWebサーバーのスペックはどの程度かなどを検討する', 'Webサイトを利用する端末によっては、新しい言語や技術に対応していないなど、コンテンツの閲覧や動作に支障があるため、ユーザーの利用環境をどこまで想定するかは、保守・運用フェーズで検討するように計画を進める', '設計段階で決めたことを後々のフェーズで変更することは、大きな工数の無駄になったり、スケジュールの遅延につながり、品質にも影響を及ぼすことになるため、それぞれの設計作業を入念に行うことが重要である。'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q42', type: 'mock', chapter: 0,
+                text: 'サイト設計書に含める以下の項目と説明の組み合わせとして適切なのは、次のどれか。\n<項目>\nA:画面遷移図\nB: システム要件定義書\nC:詳細サイトマップ\n<説明>\nD: Webサイト内に含めるページ単位のコンテンツを明らかにする見取り図のことであり、これによって初めてWebサイト全体を俯瞰することができる\nE: Webサイトで実装する機能を文章で定義したもので、実際にプログラムを書く担当者は、何を作ればよいかわからないと作業を完了させることができないため、達成すべき内容を詳細なレベルまで明らかにする\nF: 特に入力フォームなどで必要とされ、例えばエラーが起きた際のページ移動や、あるユーザータスクが終了した後のページ移動など、サイトマップを作成しただけでは見えてこない必要なページや、ユーザビリティ上、配慮が不足している部分を明らかにする',
+                options: ['AとD、BとE、CとF', 'AとF、BとE、CとD', 'AとF、BとD、CとE', 'AとE、BとD、CとF'],
+                answer: 1, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q43', type: 'mock', chapter: 0,
+                text: 'サイト設計書の作成において、コンテンツリスト(または、ディレクトリリスト、ファイルリスト)と呼ばれるドキュメントの説明として適切なものは、次のどれか。',
+                options: ['Webサイト内のコンテンツの論理的な分類方針を明らかにする全体見取り図に相当する', '視覚的に伝えたい雰囲気やトーンなどを決定し、プロジェクトメンバーで共有するために用いる', 'CSS、JavaScript、画像、音声、動画、テンプレートファイルなどの素材一覧は含めない', 'ニュースリリース、新商品情報など、更新頻度が高いコンテンツは、フォルダやファイルの命名規則を決めておく'],
+                answer: 3, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q44', type: 'mock', chapter: 0,
+                text: '制作仕様書に関する以下の文章について、空欄(A) (B) (C) に当てはまる言葉の正しい組み合わせは、次のどれか。\n「Webサイト制作においても ( A ) は一般的な手法であり、概要設計、詳細設計、開発、テスト、リリースという作業工程について、前段階が完了しないと次の工程に進まないという特徴がある。一方、(B) は開発対象を多数の小さな機能に分割し、短い期間単位でひとつの機能をまず開発する手法である。迅速で柔軟な仕様変化に対応でき、煩雑なドキュメント作成がいらない手法だが、総費用が見えにくいなどの欠点もある。どちらのワークフローにおいても、制作仕様書は必須であり、特に(C)を考慮して作成することが、Webサイトの運用性を高める。」',
+                options: ['A: ウォーターフォール型開発 B: アジャイル型開発 C: 保守・運用フェーズ', 'A: アジャイル型開発 B: ウォーターフォール型開発 C: 保守・運用フェーズ', 'A: ウォーターフォール型開発 B: アジャイル型開発 C: 企画フェーズ', 'A: アジャイル型開発 B: ウォーターフォール型開発 C: 企画フェーズ'],
+                answer: 0, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q45', type: 'mock', chapter: 0,
+                text: '制作仕様書における納品・検品規定の説明として誤りと考えられるものは、次のどれか。',
+                options: ['Webサイトを完成品として納品するために必要な項目をまとめたものである', 'ファイルの納品方法(記憶媒体、引き渡し方法など)、素材一覧や仕様書などの添付ドキュメント、その他の特記事項について規定しておく', '納品物の確認はもとより、例えばHTMLページやアクセシビリティのバリデーション (検証)に達成基準を設けている場合は、発注者側でも念のため確認するなど、検品方法を規定しておく', 'まず物理的な記憶媒体への保存と受け渡しは必須のものとした上で、複数の納品形式を規定しておく'],
+                answer: 3, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q46', type: 'mock', chapter: 0,
+                text: '情報アーキテクチャ設計において、最良のソリューションを導き出すための3要素に当てはまるのは、次のどれか。',
+                options: ['事業中心設計、ビジネス目的、コンバージョン', 'ユーザー中心設計、ビジネス目的、テクノロジー', 'ユーザー中心設計、社会貢献目的、テクノロジー', '事業中心設計、社会貢献目的、コンバージョン'],
+                answer: 1, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q47', type: 'mock', chapter: 0,
+                text: '情報アーキテクチャの成果物に関する以下の図について、空欄(A) (B) (C)に当てはまる言葉の正しい組み合わせは、次のどれか。',
+                image: 'image_050eb0.png',
+                options: ['A: アンケート項目 B: サイトマップ C: 詳細画面デザイン', 'A: ワイヤーフレーム B: マインドマップ C: 詳細画面デザイン', 'A: ワイヤーフレーム B: サイトマップ C: 詳細画面デザイン', 'A: ワイヤーフレーム B: サイトマップ C: コーディング規定'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q48', type: 'mock', chapter: 0,
+                text: 'Webサイトの正式公開前に行うべき各種テストとその内容の説明として適切ではないものは、次のどれか。',
+                options: ['ナビゲーションチェック ナビゲーションやハイパーリンクの操作によって、意図した場所に遷移するか', 'テキストチェック: 文章に誤字・脱字、記述ミス、間違った用法が残っていないか', 'メディアチェック: 要件定義で定めたOSとWebブラウザの組み合わせで、制作者の意図したデザインや機能が実現されているか', '連結テスト: 実装したプログラムの機能を複数組み合わせて行う動作で、問題が発生しないか'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q49', type: 'mock', chapter: 0,
+                text: 'テキストコンテンツのライティングに関する説明として正しいのは、次のどれか。',
+                options: ['文章ライティングは、タイトルや見出し、製品やサービスの魅力を端的に表したキャッチコピーなどを書く作業である', 'コピーライティングは、テーマや文字数などの条件を踏まえて、構成や展開を工夫しながら文章を書く作業である', 'Webコンテンツとしてのテキストには、SEOや読み手のリテラシーを考えたライティングが求められる', '誤字や脱字、用語表記など形式面のチェックを「校閲」、事実関係の正しさなど内容面のチェックを「校正」という'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q50', type: 'mock', chapter: 0,
+                text: 'Webサイトで利用する画像に関する以下の説明に当てはまる形式は、次のどれか。\n「次世代フォーマットとしてGoogleが開発。不可逆圧縮と可逆圧縮の両方に対応し、透過やアニメーションの設定が可能で、高い圧縮率という特徴がある。いわば、従来よく使われてきた他の画像形式の特徴を兼ね備えたフォーマットである。」',
+                options: ['PNG', 'JPEG', 'WebP', 'SVG'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q51', type: 'mock', chapter: 0,
+                text: 'Webサイトに掲載する写真の撮影について、誤りと考えられる説明は、次のどれか。',
+                options: ['撮りなおしが難しい緊迫した状況では、RAWではなくJPEGで撮影しておくとよい', '仕上がりイメージを共有するための「撮影ラフ(ラフスケッチ)」を用意しておくとよい', 'ページ内のどの部分で、どのように使用する写真なのかを関係者で共有しておくことが、現場でのスムーズな撮影に役立つ', '撮影する被写体が食べ物や料理の場合は、食器や周辺小物などのセッティングが必要なケースがある'],
+                answer: 0, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q52', type: 'mock', chapter: 0,
+                text: '映像データの形式に関する以下の図について、空欄(A) (B)に当てはまる言葉の正しい組み合わせは、次のどれか。',
+                image: 'image_050ed2.png',
+                options: ['A: コンテナ B: エンコーダー', 'A: コンテナ B: デコーダー', 'A: コンテナ B: コーデック', 'A: コーデック B: ファイル'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q53', type: 'mock', chapter: 0,
+                text: 'インタラクティブコンテンツに関する用語と説明の組み合わせとして誤りと考えられるのは、次のどれか。',
+                options: ['インタラクション: 2つ以上の存在が双方向の対話やコミュニケーションを起こすことを指す', 'モーダル: 視差効果のこと。スクロールに応じてコンテンツ要素やデザインが動的に変化する表現を指すことが多く、非常にダイナミックな表現から、ワンポイント的に使った表現まで、さまざまなコンテンツが見受けられる', 'ユーザビリティ: 使いやすさや利便性のことで、ユーザー体験 (UX) の一要素であり、タッチデバイスの普及、シニアユーザーの増加など、時代に合わせた改善が必要である', 'GUI: コンピュータやソフトウェアがユーザーからの入出力を受け入れるインターフェイスを、情報を画像や図形でわかりやすく提示し、クリックやタッチでの位置指定によって直感的に操作できる仕組み'],
+                answer: 1, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q54', type: 'mock', chapter: 0,
+                text: 'ビジュアルデザインに関する以下の項目と説明の組み合わせとして適切なのは、次のどれか。\n<項目>\nA:左右非対称\nB:ビジュアルランゲージ\nC: グリッドデザイン\n<説明>\nD: スイスのヨゼフ・ミューラー=ブロックマンによって考案された技法であり、キャンバスに対して一定の間隔で縦横のガイドラインを引き、その線に合わせて要素を配置していく方法である\nE: ピクトグラムは何らかの情報や注意を示すために表示される視覚記号 (サイン)として、公共機関での標識やトイレ、禁煙、非常口の表示など多くの場所で用いられており、言葉がわからなくてもその意味することを理解できるのが利点である\nF:2分割カラムでは黄金比や白銀比などに基づく割合の面積配分を行うことが、バランスのよいデザインにつながる',
+                options: ['AとF、BとD、CとE', 'AとE、BとF、CとD', 'AとE、BとD、CとF', 'AとF、BとE、CとD'],
+                answer: 3, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q55', type: 'mock', chapter: 0,
+                text: 'ビジュアルデザインに関する以下の文章の中に、誤りはいくつ含まれているか。\n「黄金比は1:1.414、白銀比は1:1.618である。矩形の短辺と長辺の美しい比率とされ、プロポーションの整った工業製品やロゴデザインでも見受ける比率である。」',
+                options: ['1か所', '2か所', '3か所', 'なし'],
+                answer: 1, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q56', type: 'mock', chapter: 0,
+                text: 'Webサイトで色を無計画に用いてしまうと、ユーザーに雰囲気がうまく伝わらないばかりか、視覚的なストレスにつながる。通常、計画しておくべき3種類の色に含まれないのは、次のどれか。',
+                options: ['アソートカラー', 'ベースカラー', 'インディペンデントカラー', 'アクセントカラー'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q57', type: 'mock', chapter: 0,
+                text: 'カラースキームや配色計画に関する説明として正しくないのは、次のどれか。',
+                options: ['トーンとは、色の明度と彩度によって決定される色調のことで、ビビッドトーン、ライトトーン、ダルトーン、グレイッシュトーンといった使い方をする', '色相環の赤寄りの半分に属する赤、橙、黄などは「暖色系」、反対側の緑、青、紫は「寒色系」と呼ばれ、暖色系は暗さ、落ち着き、後退、収縮など、寒色系は明るさ、活発さ、進出、膨張などの印象を与える', '色には、種類を表す「色相」、明るさを表す「明度」、鮮やかさや濃さを示す「彩度」の3つの属性があり、これらの組み合わせによってさまざまな色味が生み出せる', 'RGBの各チャンネルでは0から255までの256段階の値が指定でき、例えば「赤255、緑255、青0」と指定すれば「黄色」となる'],
+                answer: 1, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q58', type: 'mock', chapter: 0,
+                text: 'Webサイト制作でのフォントの利用に関する以下の文章について、空欄 (A) (B) (C) に入る言葉の組み合わせとして正しいのは、次のどれか。\n「Webフォントの利用にあたっては、制作者や運営者がサーバーにフォントファイルを置いておき、ユーザーがHTMLやCSSとともにダウンロードすることで、テキストにそのフォントが適用される。CSSの (A) でフォント名やファイルのパスを定義し、適用したい部分に(B) でそのフォント名を指定する。有償ホスティングサービスの多くが、必要な文字のみを収録したファイルを生成する (C) 機能に対応しており、効率的なフォント利用が可能である。」',
+                options: ['A: @font-face B: font-family C: サブセット', 'A: font-family B: @font-face C: サブセット', 'A: @font-face B: font-family C: CDN', 'A: font-family B: @font-face C: CDN'],
+                answer: 0, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q59', type: 'mock', chapter: 0,
+                text: 'Webサイト制作におけるタイポグラフィの可能性が年々広がっている。以下の文章が意味しているのは、次のどれか。\n「Webでよく利用するピクトグラムをフォントとしてまとめたもの。特に有名なのは、Font Awesomeである。」',
+                options: ['アイコンフォント', 'Webフォント', 'SVGフォント', 'システムフォント'],
+                answer: 0, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q60', type: 'mock', chapter: 0,
+                text: 'コーポレートアイデンティティの伝達におけるビジュアルデザインの役割や判断について、正しいと考えられる説明は、次のどれか。',
+                options: ['コーポレートアイデンティティはビジュアルデザインと密接に関係し、企業イメージが正しく伝わるようにデザインを決定するのは当然のこと、メッセージとブランドプロミスを強化することが求められる', 'ロゴによっては、小さいサイズでの表示を想定せずにデザインされたものもあるが、Webのみ例外的にロゴと社名・コピーを切り離すといった新たな利用方法はほぼ認められない', 'コーポレートカラーはCI伝達上もっとも重要な要素のひとつであり、Webでのテーマカラー選択では、コーポレートカラーとはまったく別の色を展開し、決定するケースが多い', 'コーポレートアイデンティティの中でも視覚表現に関するものはS1 (Sound Identity) と呼ばれ、一貫したSIの利用によって、企業や製品のブランドイメージの確立に寄与できる'],
+                answer: 0, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q61', type: 'mock', chapter: 0,
+                text: 'コーポレートアイデンティティ (CI) ガイドラインでのロゴに関する規定について、通常は含めないと考えられるものは、次のどれか。',
+                options: ['ロゴの配色(CMYK、DIC、RGB值)', 'ロゴのサイズ、余白、配置方法', 'ロゴの誤使用例や禁止事項', 'ロゴを赤地と青地で使用する際の注意事項'],
+                answer: 3, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q62', type: 'mock', chapter: 0,
+                text: 'Web標準に準拠してWebページを制作することの直接的なメリットとして考えられないのは、次のどれか。',
+                options: ['HTMLとCSSの役割分担を明確にすることで、メンテナンス性やアクセシビリティの向上、互換性や相互運用性の向上が期待できる', '検索クローラーによるページの構造認識がスムーズに行われるため、SEOにつながる可能性がある', 'サーバサイドプログラムの開発効率が大幅に向上する', 'どのような人が、どのようなデバイスやソフトウェアを用いても、コンテンツにアクセスし、情報を取得できる可能性を高める'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q63', type: 'mock', chapter: 0,
+                text: 'Webサイト運用に関する以下の文章について、空欄(A) (B) (C) に入る言葉の組み合わせとして正しいのは、次のどれか。\n「現在のWebサイト運用では、Webコンテンツの統一的な管理や更新性の向上のために(A)を利用するのが一般的である。Webページの「ひな形」である(B)の作り込みが必須であり、さらに ( C ) によって機能拡張を行うことで、より運用性の高い環境を整備する。」',
+                options: ['A: テンプレート B: プラグイン C: CMS', 'A: CMS B: テンプレート C: プラグイン', 'A: CMS B: プラグイン C: テンプレート', 'A: プラグイン B: テンプレート C: CMS'],
+                answer: 1, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q64', type: 'mock', chapter: 0,
+                text: 'Webサイト制作実務に関する説明として不適切と考えられるのは、次のどれか。',
+                options: ['HTMLやCSSのソースコードの妥当性について、バリデーターなどのツールを利用した機械的なチェックがある程度までは可能であるが、人間的な判断が求められることも多い', 'Webサイトの公開時に仕様や規格に準拠していることと、運用段階でも準拠しつづけることでは、おおむね前者のほうが困難である', 'アクセス解析のためのトラッキングコード、リスティング広告の効果測定のためのコードなど、Webマーケティングに関わるコーディングは必須となっている', 'マルチデバイス対応では、デバイスごとに画面解像度や機能に違いがあるため、必要性、予算、ユーザー環境などの観点から、対応すべき機種やOS、Webブラウザの種類を判断する'],
+                answer: 1, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q65', type: 'mock', chapter: 0,
+                text: 'CSS設計に関する説明として誤りと考えられるのは、次のどれか。',
+                options: ['プリフィックスを用いたCSS設計の代表例として「SMACSS」と「FLOCSS」が挙げられる', 'CSSプリプロセッサーとは、CSSに不足している機能を補い、文字どおり事前処理を施した上で、CSSファイルを出力するものである', 'CSS設計では、ID名にプリフィックス (接頭辞)をつけることで、そのID名のUIとしての役割が明確になり、HTML上のどこに指定すべきかが分かりやすくなる', 'CSSプリプロセッサーとしては、Rubyベースの 「Sass」が広く利用されている'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q66', type: 'mock', chapter: 0,
+                text: 'Webアクセシビリティに関連して、以下の文章が意味しているユーザーは、次のどれか。\n「色の違いだけで情報が伝えられていると、その情報を理解できないことがある。また、背景色と文字の組み合わせによっては文字を読みとれない場合がある。」',
+                options: ['全盲のユーザー', 'ロービジョンのユーザー', '色覚認識に特性のあるユーザー', 'マウスを用いた操作ができないユーザー'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q67', type: 'mock', chapter: 0,
+                text: '日本国内のWebアクセシビリティ規格である 「JIS X 8341-3」の内容に照らして、以下のガイドラインが含まれているのは、次のどの原則か。\n・読みやすさ\n・予測可能\n・入力支援',
+                options: ['知覚可能に関する原則', '操作可能に関する原則', '理解可能に関する原則', '堅ろう (牢) 性に関する原則'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q68', type: 'mock', chapter: 0,
+                text: 'Webアクセシビリティ規格で求められる「代替コンテンツ」の説明として正しいのは、次のどれか。',
+                options: ['ユーザーがWebコンテンツを読んだり使用したりするのに十分な時間を提供すること', 'ユーザーが間違えないようにしたり、間違いを修正したりするのを助けること', 'ユーザーがマウスではなく、キーボードなど別の入出力デバイスを用いるのを想定すること', '音声や映像について、テキスト化した情報(内容を文字に起こしたもの)を提供したり、複雑な図表に詳細な説明文をつけること'],
+                answer: 3, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q69', type: 'mock', chapter: 0,
+                text: 'プログラミング言語に関する以下の文章について、空欄(A) (B) (C) に入る言葉の組み合わせとして正しいのは、次のどれか。\n「(A)方式は、記述されたソースコードや中間表現を上から逐次解釈しながら実行していく仕組みであり、Perlなどが該当する。一方、(B)方式は、プログラミング言語で書かれたプログラムを、コンピュータが直接実行可能な機械語のプログラムに変換する方法であり、JavaやC++、SwiftやObjective-Cなどが該当する。プログラミング言語の中でも特に、単純なプログラムの記述を目的とした簡易的なものを (C) 言語と呼ぶ。」',
+                options: ['A: コンパイラ B: インタープリタ C: スクリプト', 'A: インタープリタ B: コンパイラ C: スクリプト', 'A: コンパイラ B: インタープリタ C: 組み込み', 'A: インタープリタ B: コンパイラ C: 組み込み'],
+                answer: 1, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q70', type: 'mock', chapter: 0,
+                text: 'クライアントサイドプログラミングに関する説明として誤りと考えられるものは、次のどれか。',
+                options: ['HTMLだけでなくプログラムを一緒にダウンロードして、Webブラウザがその処理を行う、という仕組みになっている', '実現可能なことは「Webブラウザへの処理命令」と「HTMLやCSSの操作」の2つに大別できる', '計算処理をクライアント側のWebブラウザを用いて行うため、Webサーバーの処理能力に左右されず実行できる', 'Webサーバーと非同期通信を行うAjaxのような技術を使う場合でも、Webサーバーの処理負荷は考えなくてよい'],
+                answer: 3, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q71', type: 'mock', chapter: 0,
+                text: 'サーバーサイドプログラミングに関する以下の文章が表している言語は、次のどれか。\n「オープンソースのシステム開発で多く用いられる。HTMLへの組み込みが容易であり、平易な文法のため初心者でも習得しやすいとされている。」',
+                options: ['Perl', 'PHP', 'Python', 'Ruby'],
+                answer: 1, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q72', type: 'mock', chapter: 0,
+                text: 'Webサイトのセキュリティ対策として不適切と考えられるのは、次のどれか。',
+                options: ['使用しているシステムにセキュリティホールが発見された場合は、プログラムの変更点だけをまとめたパッチなどを通じて問題部分を修復するが、そのためには時間をかけた慎重な情報収集と、組織内での合意を前提とした数日間から数週間に渡る議論と対応が必要である', '開発言語やオープンソースのプログラムで脆弱性が発見された場合、開発者用のメーリングリストや公式サイトで報告されるので、情報を常に確認する心がけが大切である', '重要な情報の通信を行う際には、SSL (Secure Socket Layer) SSH (Secure Shell)、 TLS (Transport Layerなどで情報暗号化を行い、大規模なアクセスやブルートフォース攻撃に関しては、IPアドレス制限や推測されにくいパスワードの採用、定期的な変更を行う', 'セキュリティリスクは、室外に持ち出したパソコンの紛失・盗難や、重要なデータをバックアップしたUSBメモリなどを紛失すること、パソコン自体に個人認証を設けていないこと、組織内に悪意を持った人物がおり、データを不正に持ち出したり、パスワードを盗み見たりすることなど、人為的な不注意やミス(ヒューマンエラー)、悪意によって多く起きていることも忘れてはならない'],
+                answer: 0, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q73', type: 'mock', chapter: 0,
+                text: '新技術への対応に関する以下の文章が表しているのは、次のどれか。\n「身近なところでは、Nintendo Switch, PlayStation, Xboxなどは、本体やコントローラー、周辺機器にさまざまなセンサーを搭載し、体を動かして楽しめるゲームソフトが多数販売されている。映像や音声の表現力は年を負うごとに向上し、高い臨場感や没入感をユーザーに提供している。」',
+                options: ['量子コンピューティング', 'クラウドコンピューティング', 'フィジカルコンピューティング', 'リモートコンピューティング'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q74', type: 'mock', chapter: 0,
+                text: 'Webマーケティングに関する以下の手法と目的の組み合わせとして正しいのは、次のどれか。\n<手法>\nA: オウンドメディアの運用\nB: ソーシャルメディアの活用\nC: リスティング広告の利用\n<説明>\nD: 自社でメディアを展開することであり、広報や広告と組み合わせて高いマーケティング効果を目指す\nE: Google広告やYahoo!広告などの代理店を通じて配信し、インターネット上での認知を広げ、Webサイトへ誘導したり、コンバージョンの増加を目指す\nF: 消費者との対話を通じて共感や愛着を抱いてもらい、告知や周知に協力してもらったり、ロイヤルカスタマーになってもらうことを目指す',
+                options: ['AとD、BとE、CとF', 'AとE、BとF、CとD', 'AとF、BとE、CとD', 'AとD、BとF、CとE'],
+                answer: 3, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q75', type: 'mock', chapter: 0,
+                text: 'Webマーケティングの手法として、「ブログなどを通じて商品やサービスを紹介してもらい、商品購入や資料請求につながった場合に、一定の手数料を支払う仕組み」に基づいて運用するのは、次のどれか。',
+                options: ['ドロップシッピング', 'オウンドメディア', 'アフィリエイト', 'バズマーケティング'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q76', type: 'mock', chapter: 0,
+                text: '以下のインターネット広告について、通常は「社会規範や公序良俗に反する広告」に該当するものは、いくつあるか。\n・誹謗中傷や名誉毀損に当たる広告\n・差別や人権侵害に当たる広告\n・著作権や商標権侵害に当たる広告\n・露骨な性表現や性差別に当たる広告\n・犯罪を助長する広告\n・投機心の扇動の恐れがある広告',
+                options: ['3つ', '4つ', '5つ', 'すべて'],
+                answer: 3, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q77', type: 'mock', chapter: 0,
+                text: 'ニュースサイトの記事ページに移動するタイミングで表示されたり、数ページにわたる記事の途中で表示される広告を表す言葉は、次のどれか。',
+                image: 'image_050f0b.png',
+                options: ['記事広告', 'インタースティシャル広告', 'インストリーム広告', 'リッチメディア広告'],
+                answer: 1, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q78', type: 'mock', chapter: 0,
+                text: 'リスティング広告の順位決定の仕組みと直接関係すると考えられるのは、次のどれか。',
+                options: ['リンク先ページが含まれるサイト全体のボリューム', '広告とリンク先ページの品質', 'アカウント入金額', '設定しているキャンペーン数'],
+                answer: 1, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q79', type: 'mock', chapter: 0,
+                text: 'リスティング広告に関する説明として正しいものは、次のどれか。',
+                options: ['ディスプレイ広告とは、検索エンジンの結果画面に表示される広告であり、自然検索結果の上部や下部に表示される', '検索広告とは、ポータルサイト、ニュースサイト、アプリ画面など、さまざまなコンテンツの中に表示される広告である', 'レスポンシブ広告とは、あらかじめ設定した複数の「見出し」と「説明文」を、自動で組み合わせて配信できる広告タイプである', '動的検索広告とは、複数の画像を登録しておくことで、そのユーザーによりマッチした画像を表示し、クリック率を高める広告タイプである'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q80', type: 'mock', chapter: 0,
+                text: 'ソーシャルメディアマーケティングに関する説明として誤りと考えられるのは、次のどれか。',
+                options: ['ユーザーは基本的に、企業の宣伝を見るために利用しているわけではないため、雰囲気やコンテキスト(文脈)を壊さないかたちで、ユーザーとコミュニケーションを図る姿勢が求められる', '運用について外部の会社から支援を受ける場合は、信頼して一切の業務を任せ、発注元である企業の担当者や関係部署が主体的に関わらないことが大切である', '企業のコンプライアンスやブランディング活動とのバランスを考慮し、ひとりのユーザーでありながら、企業を代表する発言や行動としてふさわしいか、という視点が求められる', '運用ポリシーを明確にし、日ごろからユーザーの理解を得るように努めること、炎上などの問題が発生した際の対応策を決めておくことが大切である'],
+                answer: 1, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q81', type: 'mock', chapter: 0,
+                text: '動画広告に関する以下の文章について、空欄(A) (B) に入る言葉の組み合わせとして正しいのは、次のどれか。\n「動画広告はテキスト広告やディスプレイ (画像) 広告よりも制作コストが(A)、一定のスキルやノウハウを必要とする。動画広告において、ボタンなどのUIが表示されるエリア以外の「コンテンツを快適に視聴できる範囲」のことを (B) といい、重要な内容、メッセージ、テロップなどはこの範囲内におさまるようにする。」',
+                options: ['A:低く B: ヒートエリア', 'A:低く B: セーフゾーン', 'A:高く B: セーフゾーン', 'A: 高く B: ヒートエリア'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q82', type: 'mock', chapter: 0,
+                text: '検索エンジンの検索結果画面での順位について誤りと考えられる説明は、次のどれか。',
+                options: ['単に検索順位を追うだけでなく、訪問後、ユーザーにどのような体験を提供できるかが問われる時代である', '信頼性や評判の高いWebサイトから自サイトにリンクを貼られることは、検索順位の向上に役立つ', '組織的なリンクネットワークの構築は、検索エンジン側でも適切な行為として推奨している', '検索履歴やCookieの情報を元に、ユーザーによって検索順位を変えて表示する仕組みがある'],
+                answer: 2, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q83', type: 'mock', chapter: 0,
+                text: 'LPOに関する以下の文章について、空欄(A) (B) (C)に入る言葉の組み合わせとして正しいのは、次のどれか。\n「LPOは(A)ごとに別々のランディングページを用意する最適化と、同一の(A) に対して効果の高い(B)を検討する最適化の2つに大別できる。どちらの場合でも、リスティング広告やバナー広告を複数パターン用意し、(C)によってふるいにかけ、効果の高いほうを使い続けるといった取り組みが大切である。」',
+                options: ['A: コンテンツ B: クエリ C: コホート分析', 'A: クエリ B: コンテンツ C: コホート分析', 'A: コンテンツ B: クエリ C:A/Bテスト', 'A: クエリ B: コンテンツ C: A/Bテスト'],
+                answer: 3, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q84', type: 'mock', chapter: 0,
+                text: 'アクセス解析ツールのひとつであるGoogleアナリティクスの「インタレストカテゴリ」の説明として正しいのは、次のどれか。',
+                options: ['ユーザーとの接点のことであり、デフォルトチャネルグループをもとに分類される', 'ユーザーの興味関心や購買意向に基づく分類のことであり、そのユーザーのオンラインでの活動や購買行動から判断される', '任意のレポートを生成する機能であり、さまざまな形式が用意されている', 'ユーザー体験を判断する指標であり、LCP、FIDまたはINP、CLSの3つの指標がある'],
+                answer: 1, explanation: '確認できませんでした'
+            },
+            {
+                id: 'm1_q85', type: 'mock', chapter: 0,
+                text: 'Webサイト管理者向けのツールであるGoogle Search Consoleに関する説明として誤りと考えられるのは、次のどれか。',
+                options: ['主要な検索エンジンが軒並み常時SSL化し、アクセス解析ツールでの検索キーワードの取得が困難になっている現在、キーワード分析に欠かせないツールである', '現在のSEOでは、検索結果画面での表示内容、検索エンジンへのコンテンツの登録状況などにも気を配る必要があり、そのようなニーズに対応している', '主に「ユーザー」「集客」「行動」「コンバージョン」の4カテゴリーが用意されており、それらの中にさらに詳細なレポートが含まれている', '検索パフォーマンスというレポート画面では、検索キーワードごとのクリック数、表示回数、CTR(クリック率)、掲載順位が確認できる'],
+                answer: 2, explanation: '確認できませんでした'
+            }
+        ];
+// --- アプリケーションの状態 ---
+        let currentQueue = [];
+        let currentIndex = 0;
+        let score = 0;
+        let currentMode = '';
+        
+        // --- データの初期化と移行 ---
+        let mistakes = JSON.parse(localStorage.getItem('webLitMistakes') || '{}');
+        let stats = JSON.parse(localStorage.getItem('webLitStats') || '{}');
+        
+        for (let id in mistakes) {
+            if (!stats[id]) {
+                stats[id] = { correct: 0, wrong: mistakes[id] };
+            }
+        }
+
+        // --- 初期化 ---
+        function updateMenuState() {
+            const mistakeCount = Object.keys(mistakes).length;
+            document.getElementById('mistake-count').textContent = mistakeCount;
+            document.getElementById('btn-review').disabled = mistakeCount === 0;
+        }
+        updateMenuState();
+
+        // --- 問題の通し番号を取得する関数 ---
+        function getQuestionNumber(q) {
+            if (q.chapter === 0 || q.chapter === '模擬試験') {
+                // 模擬試験（1〜85問）の通し番号
+                const mocks = quizData.filter(x => x.chapter === 0 || x.chapter === '模擬試験');
+                return mocks.findIndex(x => x.id === q.id) + 1;
+            } else {
+                // 第1〜6章（1〜100問）の全体通し番号
+                const chapters = quizData.filter(x => x.chapter !== 0 && x.chapter !== '模擬試験');
+                return chapters.findIndex(x => x.id === q.id) + 1;
+            }
+        }
+
+        // --- 問題の章・番号ラベルを取得する関数 ---
+        function getQuestionLabel(q) {
+            const num = getQuestionNumber(q);
+            if (q.chapter === 0 || q.chapter === '模擬試験') {
+                return `模擬試験 第${num}問`;
+            } else {
+                return `第${q.chapter}章 第${num}問`;
+            }
+        }
+
+        // --- 問題一覧画面の表示 ---
+        function showQuestionList() {
+            document.getElementById('menu-view').classList.add('hidden');
+            document.getElementById('quiz-view').classList.add('hidden');
+            document.getElementById('result-view').classList.add('hidden');
+            document.getElementById('list-view').classList.remove('hidden');
+            
+            const container = document.getElementById('question-list-container');
+            container.innerHTML = '';
+            
+            const grouped = {};
+            quizData.forEach(q => {
+                let key = (q.chapter === 0 || q.chapter === '模擬試験') ? '模擬試験' : `第${q.chapter}章`;
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(q);
+            });
+            
+            for (let key in grouped) {
+                const sec = document.createElement('div');
+                sec.innerHTML = `<h3 style="margin-top: 20px; margin-bottom: 15px; border-bottom: 2px solid var(--border); padding-bottom: 5px; color: var(--text);">${key}</h3>`;
+                
+                grouped[key].forEach((q) => {
+                    const qStats = stats[q.id] || {correct: 0, wrong: 0};
+                    const num = getQuestionNumber(q); // 全体での通し番号を取得
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'list-item';
+                    btn.onclick = () => startSingleQuestion(q.id);
+                    
+                    btn.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: bold; color: var(--primary);">第${num}問</span>
+                            <span style="font-size: 0.8rem; display: flex; gap: 5px;">
+                                <span class="badge-correct">正解: ${qStats.correct}回</span>
+                                <span class="badge-wrong">間違い: ${qStats.wrong}回</span>
+                            </span>
+                        </div>
+                        <div style="font-size: 0.95rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            ${q.text}
+                        </div>
+                    `;
+                    sec.appendChild(btn);
+                });
+                container.appendChild(sec);
+            }
+        }
+
+        function startSingleQuestion(questionId) {
+            currentQueue = [quizData.find(q => q.id === questionId)];
+            startQuiz('single');
+        }
+
+        // --- 各種モード開始関数 ---
+        function startChapterMode() {
+            const checks = document.querySelectorAll('.chap-check:checked');
+            if (checks.length === 0) {
+                alert('少なくとも1つの章を選択してください。');
+                return;
+            }
+            const selectedChaps = Array.from(checks).map(cb => parseInt(cb.value));
+            currentQueue = quizData.filter(q => q.type === 'exercise' && selectedChaps.includes(q.chapter));
+            
+            if (currentQueue.length === 0) {
+                alert('選択された章の問題データがありません。');
+                return;
+            }
+            startQuiz('chapter');
+        }
+
+        function startMockMode() {
+            currentQueue = quizData.filter(q => q.type === 'mock');
+            startQuiz('mock');
+        }
+
+        function startReviewMode() {
+            currentQueue = quizData.filter(q => mistakes[q.id]);
+            currentQueue.sort((a, b) => mistakes[b.id] - mistakes[a.id]);
+            startQuiz('review');
+        }
+
+        function startQuiz(mode) {
+            currentMode = mode;
+            currentIndex = 0;
+            score = 0;
+            
+            if (mode !== 'review' && mode !== 'single') {
+                currentQueue = currentQueue.sort(() => Math.random() - 0.5);
+            }
+
+            document.getElementById('menu-view').classList.add('hidden');
+            document.getElementById('list-view').classList.add('hidden');
+            document.getElementById('result-view').classList.add('hidden');
+            document.getElementById('quiz-view').classList.remove('hidden');
+            
+            showQuestion();
+        }
+
+        // --- 問題表示 ---
+        function showQuestion() {
+            const q = currentQueue[currentIndex];
+            const qStats = stats[q.id] || { correct: 0, wrong: 0 };
+            
+            document.getElementById('chapter-qnum-text').textContent = getQuestionLabel(q);
+            document.getElementById('stats-badge-correct').textContent = `正解: ${qStats.correct}回`;
+            document.getElementById('stats-badge-wrong').textContent = `間違い: ${qStats.wrong}回`;
+
+            const btnBackHeader = document.getElementById('btn-back-header');
+            if (currentMode === 'single') {
+                document.getElementById('progress-text').textContent = '';
+                document.getElementById('btn-next').classList.add('hidden');
+                document.getElementById('btn-back-to-list').classList.remove('hidden');
+                btnBackHeader.setAttribute('onclick', 'returnToList(event)');
+                btnBackHeader.textContent = '← 一覧に戻る';
+            } else {
+                document.getElementById('progress-text').textContent = `問題: ${currentIndex + 1} / ${currentQueue.length}`;
+                document.getElementById('btn-next').classList.remove('hidden');
+                document.getElementById('btn-back-to-list').classList.add('hidden');
+                btnBackHeader.setAttribute('onclick', 'returnToMenuFromQuiz(event)');
+                btnBackHeader.textContent = '← トップメニューに戻る'; // confirmなしに修正
+            }
+
+            document.getElementById('question-text').innerText = q.text;
+
+            // ▼ 画像の表示切り替え ▼
+            const imgContainer = document.getElementById('question-image-container');
+            const imgElement = document.getElementById('question-image');
+            if (q.image) {
+                imgElement.src = q.image;
+                imgContainer.classList.remove('hidden');
+            } else {
+                imgElement.src = '';
+                imgContainer.classList.add('hidden');
+            }
+            
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+            
+            q.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-option';
+                btn.innerText = optText;
+                btn.onclick = () => handleAnswer(index);
+                optionsContainer.appendChild(btn);
+            });
+
+            document.getElementById('feedback-container').classList.add('hidden');
+            document.getElementById('btn-mastered').classList.add('hidden');
+        }
+
+        // --- 解答処理 ---
+        function handleAnswer(selectedIndex) {
+            const q = currentQueue[currentIndex];
+            const isCorrect = (selectedIndex === q.answer);
+            
+            const buttons = document.querySelectorAll('.btn-option');
+            buttons.forEach((btn, idx) => {
+                btn.disabled = true;
+                if (idx === q.answer) {
+                    btn.style.backgroundColor = '#dcfce7'; 
+                    btn.style.borderColor = '#22c55e';
+                } else if (idx === selectedIndex && !isCorrect) {
+                    btn.style.backgroundColor = '#fee2e2'; 
+                    btn.style.borderColor = '#ef4444';
+                }
+            });
+
+            if (!stats[q.id]) stats[q.id] = { correct: 0, wrong: 0 };
+
+            const feedbackTitle = document.getElementById('feedback-title');
+            const feedbackContainer = document.getElementById('feedback-container');
+            
+            if (isCorrect) {
+                score++;
+                stats[q.id].correct++;
+                feedbackTitle.textContent = '⭕ 正解！';
+                feedbackContainer.className = 'feedback correct';
+                
+                if (currentMode === 'review' && mistakes[q.id]) {
+                    document.getElementById('btn-mastered').classList.remove('hidden');
+                }
+            } else {
+                stats[q.id].wrong++;
+                mistakes[q.id] = (mistakes[q.id] || 0) + 1;
+                feedbackTitle.textContent = '❌ 不正解...';
+                feedbackContainer.className = 'feedback incorrect';
+            }
+
+            localStorage.setItem('webLitStats', JSON.stringify(stats));
+            localStorage.setItem('webLitMistakes', JSON.stringify(mistakes));
+            
+            document.getElementById('stats-badge-correct').textContent = `正解: ${stats[q.id].correct}回`;
+            document.getElementById('stats-badge-wrong').textContent = `間違い: ${stats[q.id].wrong}回`;
+
+            document.getElementById('correct-answer-text').innerText = q.options[q.answer];
+            document.getElementById('explanation-text').innerText = q.explanation;
+            feedbackContainer.classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            currentIndex++;
+            if (currentIndex < currentQueue.length) {
+                showQuestion();
+            } else {
+                showResult();
+            }
+        }
+
+        function markAsMastered() {
+            const q = currentQueue[currentIndex];
+            delete mistakes[q.id];
+            localStorage.setItem('webLitMistakes', JSON.stringify(mistakes));
+            
+            const btn = document.getElementById('btn-mastered');
+            btn.textContent = '✨ リセットしました！';
+            btn.disabled = true;
+            btn.classList.remove('btn-outline');
+            btn.classList.add('btn-primary');
+        }
+
+        function returnToList(event) {
+            if (event) event.preventDefault();
+            document.getElementById('quiz-view').classList.add('hidden');
+            showQuestionList();
+        }
+
+        function returnToMenuFromList(event) {
+            if (event) event.preventDefault();
+            document.getElementById('list-view').classList.add('hidden');
+            document.getElementById('menu-view').classList.remove('hidden');
+            updateMenuState();
+        }
+
+        // ▼ダイアログ確認を廃止し、直接メニューに戻る処理に変更
+        function returnToMenuFromQuiz(event) {
+            if (event) event.preventDefault();
+            document.getElementById('quiz-view').classList.add('hidden');
+            document.getElementById('menu-view').classList.remove('hidden');
+            updateMenuState();
+        }
+
+        function showResult() {
+            document.getElementById('quiz-view').classList.add('hidden');
+            const resultView = document.getElementById('result-view');
+            resultView.classList.remove('hidden');
+            
+            const percentage = Math.round((score / currentQueue.length) * 100);
+            document.getElementById('score-display').textContent = `${score} / ${currentQueue.length} 問正解`;
+            
+            let msg = '';
+            if (percentage === 100) msg = 'パーフェクト！素晴らしい理解度です。';
+            else if (percentage >= 80) msg = '合格ラインです！この調子で頑張りましょう。';
+            else msg = '復習モードを活用して、苦手な問題を克服しましょう。';
+            
+            document.getElementById('result-message').textContent = msg;
+            
+            updateMenuState();
+        }
+
+        function returnToMenu(event) {
+            if (event) event.preventDefault();
+            document.getElementById('result-view').classList.add('hidden');
+            document.getElementById('menu-view').classList.remove('hidden');
+            updateMenuState();
+        }
+    </script>
+</body>
+</html>
