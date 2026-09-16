@@ -121,7 +121,7 @@
         <!-- クイズ画面 -->
         <div id="quiz-view" class="card hidden">
             <div class="quiz-header">
-                <button type="button" id="btn-back-header" class="btn-back" onclick="returnToMenuFromQuiz(event)">← トップメニューに戻る</button>
+                <button type="button" id="btn-back-header" class="btn-back" onclick="returnToMenuFromQuiz(event)">← 中断して戻る</button>
                 <div class="quiz-header-right">
                     <span id="chapter-qnum-text" style="font-weight:bold; color:var(--primary); margin-right:8px;"></span>
                     <span id="progress-text">1 / 10</span>
@@ -146,8 +146,14 @@
                 <div id="explanation-text" class="explanation"></div>
                 
                 <button type="button" id="btn-mastered" class="btn btn-outline hidden" onclick="markAsMastered()" style="margin-top: 15px;">✅ 復習完了（誤答記録をリセット）</button>
-                <button type="button" id="btn-next" class="btn btn-primary" onclick="nextQuestion()" style="margin-top: 15px;">次の問題へ ➔</button>
-                <button type="button" id="btn-back-to-list" class="btn btn-outline hidden" onclick="returnToList(event)" style="margin-top: 15px;">← 問題一覧に戻る</button>
+                
+                <div id="nav-buttons-container" style="display: flex; justify-content: space-between; gap: 10px; margin-top: 15px;">
+                    <button type="button" id="btn-prev" class="btn btn-outline" onclick="prevQuestion()" style="flex: 1;">← 前の問題</button>
+                    <button type="button" id="btn-next" class="btn btn-primary" onclick="nextQuestion()" style="flex: 1;">次の問題 ➔</button>
+                </div>
+                <div id="auto-next-msg" style="text-align: right; font-size: 0.8rem; color: #94a3b8; margin-top: 5px;"></div>
+
+                <button type="button" id="btn-back-to-list" class="btn btn-outline hidden" onclick="returnToList(event)" style="margin-top: 15px;">📋 問題一覧に戻る</button>
             </div>
         </div>
 
@@ -797,6 +803,7 @@
         let currentIndex = 0;
         let score = 0;
         let currentMode = '';
+        let autoNextTimeout = null; // 自動遷移タイマー用
         
         // --- データの初期化と移行 ---
         let mistakes = JSON.parse(localStorage.getItem('webLitMistakes') || '{}');
@@ -815,6 +822,14 @@
             document.getElementById('btn-review').disabled = mistakeCount === 0;
         }
         updateMenuState();
+
+        // タイマーをクリアする関数
+        function clearAutoNext() {
+            if (autoNextTimeout) {
+                clearTimeout(autoNextTimeout);
+                autoNextTimeout = null;
+            }
+        }
 
         // --- 問題の通し番号を取得する関数 ---
         function getQuestionNumber(q) {
@@ -886,9 +901,13 @@
             }
         }
 
+        // --- 一覧から開始（前後の順番を保持して開始） ---
         function startSingleQuestion(questionId) {
-            currentQueue = [quizData.find(q => q.id === questionId)];
-            startQuiz('single');
+            // currentQueueにすべての問題を順番通りにセット
+            currentQueue = [...quizData];
+            // 選択された問題から開始する
+            currentIndex = currentQueue.findIndex(q => q.id === questionId);
+            startQuiz('list-sequential');
         }
 
         // --- 各種モード開始関数 ---
@@ -920,12 +939,16 @@
         }
 
         function startQuiz(mode) {
+            clearAutoNext();
             currentMode = mode;
-            currentIndex = 0;
             score = 0;
             
-            if (mode !== 'review' && mode !== 'single') {
+            // list-sequentialモード以外はシャッフルして0番目から開始
+            if (mode !== 'review' && mode !== 'list-sequential') {
                 currentQueue = currentQueue.sort(() => Math.random() - 0.5);
+                currentIndex = 0;
+            } else if (mode === 'review') {
+                currentIndex = 0;
             }
 
             document.getElementById('menu-view').classList.add('hidden');
@@ -938,29 +961,40 @@
 
         // --- 問題表示 ---
         function showQuestion() {
+            clearAutoNext();
             const q = currentQueue[currentIndex];
             const qStats = stats[q.id] || { correct: 0, wrong: 0 };
             
+            // ヘッダー情報更新
             document.getElementById('chapter-qnum-text').textContent = getQuestionLabel(q);
             document.getElementById('stats-badge-correct').textContent = `正解: ${qStats.correct}回`;
             document.getElementById('stats-badge-wrong').textContent = `間違い: ${qStats.wrong}回`;
 
             const btnBackHeader = document.getElementById('btn-back-header');
-            if (currentMode === 'single') {
+            const btnPrev = document.getElementById('btn-prev');
+            const btnNext = document.getElementById('btn-next');
+            const btnBackToList = document.getElementById('btn-back-to-list');
+
+            // 問題一覧モード時のUI出し分け（前後移動ボタンなど）
+            if (currentMode === 'list-sequential') {
                 document.getElementById('progress-text').textContent = '';
-                document.getElementById('btn-next').classList.add('hidden');
-                document.getElementById('btn-back-to-list').classList.remove('hidden');
+                btnPrev.classList.remove('hidden');
+                btnPrev.disabled = (currentIndex === 0); // 最初の問題のときは前へボタンを無効化
+                btnNext.textContent = (currentIndex === currentQueue.length - 1) ? '結果を見る ➔' : '次の問題 ➔';
+                btnBackToList.classList.remove('hidden');
                 btnBackHeader.setAttribute('onclick', 'returnToList(event)');
                 btnBackHeader.textContent = '← 一覧に戻る';
             } else {
                 document.getElementById('progress-text').textContent = `問題: ${currentIndex + 1} / ${currentQueue.length}`;
-                document.getElementById('btn-next').classList.remove('hidden');
-                document.getElementById('btn-back-to-list').classList.add('hidden');
+                btnPrev.classList.add('hidden');
+                btnNext.textContent = '次の問題 ➔';
+                btnBackToList.classList.add('hidden');
                 btnBackHeader.setAttribute('onclick', 'returnToMenuFromQuiz(event)');
-                btnBackHeader.textContent = '← トップメニューに戻る'; // confirmなしに修正
+                btnBackHeader.textContent = '← 中断して戻る';
             }
 
             document.getElementById('question-text').innerText = q.text;
+            document.getElementById('auto-next-msg').classList.add('hidden'); // メッセージを隠す
 
             // ▼ 画像の表示切り替え ▼
             const imgContainer = document.getElementById('question-image-container');
@@ -976,12 +1010,22 @@
             const optionsContainer = document.getElementById('options-container');
             optionsContainer.innerHTML = '';
             
-            q.options.forEach((optText, index) => {
+            // ▼ 選択肢のシャッフル処理 ▼
+            // 元のインデックス（正解判定用）を保持したまま配列をコピーしてシャッフル
+            let optionsWithIndex = q.options.map((optText, index) => ({
+                text: optText,
+                originalIndex: index
+            }));
+            
+            optionsWithIndex.sort(() => Math.random() - 0.5); // シャッフル
+            
+            optionsWithIndex.forEach((opt) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'btn btn-option';
-                btn.innerText = optText;
-                btn.onclick = () => handleAnswer(index);
+                btn.innerText = opt.text;
+                btn.dataset.originalIndex = opt.originalIndex; // 判定用に元のインデックスを保存
+                btn.onclick = () => handleAnswer(opt.originalIndex);
                 optionsContainer.appendChild(btn);
             });
 
@@ -990,17 +1034,22 @@
         }
 
         // --- 解答処理 ---
-        function handleAnswer(selectedIndex) {
+        function handleAnswer(selectedOriginalIndex) {
+            clearAutoNext(); // 念のためクリア
             const q = currentQueue[currentIndex];
-            const isCorrect = (selectedIndex === q.answer);
+            const isCorrect = (selectedOriginalIndex === q.answer);
             
             const buttons = document.querySelectorAll('.btn-option');
-            buttons.forEach((btn, idx) => {
+            buttons.forEach((btn) => {
                 btn.disabled = true;
-                if (idx === q.answer) {
+                const btnOriginalIndex = parseInt(btn.dataset.originalIndex, 10);
+                
+                if (btnOriginalIndex === q.answer) {
+                    // 正解のボタンを緑色にする
                     btn.style.backgroundColor = '#dcfce7'; 
                     btn.style.borderColor = '#22c55e';
-                } else if (idx === selectedIndex && !isCorrect) {
+                } else if (btnOriginalIndex === selectedOriginalIndex && !isCorrect) {
+                    // 間違えて選んだボタンを赤色にする
                     btn.style.backgroundColor = '#fee2e2'; 
                     btn.style.borderColor = '#ef4444';
                 }
@@ -1036,9 +1085,29 @@
             document.getElementById('correct-answer-text').innerText = q.options[q.answer];
             document.getElementById('explanation-text').innerText = q.explanation;
             feedbackContainer.classList.remove('hidden');
+
+            // --- 自動遷移のセット（正解時は3秒、不正解時は解説を読めるよう6秒） ---
+            let delay = isCorrect ? 3000 : 6000;
+            const autoMsg = document.getElementById('auto-next-msg');
+            autoMsg.innerText = `※${delay/1000}秒後に自動で次へ進みます（ボタン手動操作も可能）`;
+            autoMsg.classList.remove('hidden');
+            
+            autoNextTimeout = setTimeout(() => {
+                nextQuestion();
+            }, delay);
+        }
+
+        // --- ナビゲーション操作 ---
+        function prevQuestion() {
+            clearAutoNext();
+            if (currentIndex > 0) {
+                currentIndex--;
+                showQuestion();
+            }
         }
 
         function nextQuestion() {
+            clearAutoNext();
             currentIndex++;
             if (currentIndex < currentQueue.length) {
                 showQuestion();
@@ -1061,6 +1130,7 @@
 
         function returnToList(event) {
             if (event) event.preventDefault();
+            clearAutoNext();
             document.getElementById('quiz-view').classList.add('hidden');
             showQuestionList();
         }
@@ -1072,15 +1142,18 @@
             updateMenuState();
         }
 
-        // ▼ダイアログ確認を廃止し、直接メニューに戻る処理に変更
         function returnToMenuFromQuiz(event) {
             if (event) event.preventDefault();
-            document.getElementById('quiz-view').classList.add('hidden');
-            document.getElementById('menu-view').classList.remove('hidden');
-            updateMenuState();
+            if (window.confirm("学習を中断してトップメニューに戻りますか？")) {
+                clearAutoNext();
+                document.getElementById('quiz-view').classList.add('hidden');
+                document.getElementById('menu-view').classList.remove('hidden');
+                updateMenuState();
+            }
         }
 
         function showResult() {
+            clearAutoNext();
             document.getElementById('quiz-view').classList.add('hidden');
             const resultView = document.getElementById('result-view');
             resultView.classList.remove('hidden');
@@ -1100,6 +1173,7 @@
 
         function returnToMenu(event) {
             if (event) event.preventDefault();
+            clearAutoNext();
             document.getElementById('result-view').classList.add('hidden');
             document.getElementById('menu-view').classList.remove('hidden');
             updateMenuState();
