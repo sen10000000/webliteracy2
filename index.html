@@ -53,9 +53,11 @@
         .badge-wrong { background: #fee2e2; color: var(--incorrect); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
         .question-text { font-size: 1.1rem; margin-bottom: 20px; font-weight: bold; }
         
-        /* List Styles */
+        /* List & Analysis Styles */
         .list-item { padding: 12px; margin-bottom: 10px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; background: #fff; transition: all 0.2s; text-align: left; display: block; width: 100%; font-family: inherit; }
         .list-item:hover { background: #f1f5f9; border-color: #cbd5e1; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .bar-wrap { background: #e2e8f0; border-radius: 6px; height: 12px; margin-top: 6px; overflow: hidden; }
+        .bar-fill { height: 100%; transition: width 0.5s ease-out; }
 
         /* Result Styles */
         .feedback { margin-top: 20px; padding: 20px; border-radius: 8px; animation: fadeIn 0.3s ease-in; }
@@ -103,10 +105,30 @@
             </div>
 
             <div class="mode-section">
+                <div class="mode-title">📊 苦手分析レポート</div>
+                <button type="button" class="btn btn-outline" onclick="showAnalysis()">学習データから苦手を分析する</button>
+            </div>
+
+            <div class="mode-section">
                 <div class="mode-title">🔄 復習モード</div>
                 <p style="font-size: 0.9rem; margin-bottom: 10px;">間違えた問題: <span id="mistake-count">0</span>問</p>
                 <button type="button" id="btn-review" class="btn btn-danger" onclick="startReviewMode()">間違えた問題を復習する</button>
             </div>
+
+            <div class="mode-section">
+                <div class="mode-title">⚙️ 設定</div>
+                <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 10px;">これまでの正解・間違いの記録をすべて消去します。</p>
+                <button type="button" class="btn btn-outline" style="border-color: var(--incorrect); color: var(--incorrect);" onclick="resetAllData()">学習データをリセットする</button>
+            </div>
+        </div>
+
+        <!-- 苦手分析画面 -->
+        <div id="analysis-view" class="card hidden">
+            <div class="quiz-header">
+                <button type="button" class="btn-back" onclick="returnToMenuFromAnalysis(event)">← トップメニューに戻る</button>
+            </div>
+            <h2 style="margin-bottom: 20px; color: var(--primary);">📊 苦手分析レポート</h2>
+            <div id="analysis-content"></div>
         </div>
 
         <!-- 問題一覧画面 -->
@@ -151,7 +173,6 @@
                     <button type="button" id="btn-prev" class="btn btn-outline" onclick="prevQuestion()" style="flex: 1;">← 前の問題</button>
                     <button type="button" id="btn-next" class="btn btn-primary" onclick="nextQuestion()" style="flex: 1;">次の問題 ➔</button>
                 </div>
-                <div id="auto-next-msg" style="text-align: right; font-size: 0.8rem; color: #94a3b8; margin-top: 5px;"></div>
 
                 <button type="button" id="btn-back-to-list" class="btn btn-outline hidden" onclick="returnToList(event)" style="margin-top: 15px;">📋 問題一覧に戻る</button>
             </div>
@@ -168,7 +189,8 @@
 
     <script>
         // --- 問題データ ---
-        const quizData = [            // 第1章
+        const quizData = [
+// 第1章
             {id: "c1_q1", type: "exercise", chapter: 1, text: "インターネットの普及を大きく前進させるきっかけとなったOSは、次のどれか。", options: ["Mac OS X", "Windows 98", "Windows 95", "Linux"], answer: 2, explanation: "1995年に、Microsoft から Windows 95 が発売され、インターネットが商用サービスとして普及する契機となる。このOSにはインターネットに接続するためのTCP/IP 機能が備わっており、家庭用のコンピュータでインターネットにアクセスできる条件が揃うこととなった。また、インターネットサービスプロバイダ (ISP) が続々と誕生し、ユーザーが爆発的に増加した。"},
             {id: "c1_q2", type: "exercise", chapter: 1, text: "インターネット、WWW、Eメールに関する説明として正しいと考えられるのは、次のどれか。", options: ["インターネット: TCP/IP 上で動くプロトコルである HTTPを利用してテキストや画像、音声などのデータを転送する\nWWW: さまざまな場所にある異なるコンピュータをつなぎ合わせたネットワーク\nEメール: データの送受信にSMTPとPOPというプロトコルが使われるのが一般的", "インターネット: さまざまな場所にある異なるコンピュータをつなぎ合わせたネットワーク\nWWW: TCP/IP上で動くプロトコルであるHTTPを利用してテキストや画像、音声などのデータを転送する\nEメール: データの送受信にSMTPとPOPというプロトコルが使われるのが一般的", "インターネット: TCP/IP上で動くプロトコルである HTTP を利用してテキストや画像、音声などのデータを転送する\nWWW: データの送受信にSMTPとPOPというプロトコルが使われるのが一般的\nEメール: さまざまな場所にある異なるコンピュータをつなぎ合わせたネットワーク", "インターネット: データの送受信にSMTPとPOPというプロトコルが使われるのが一般的\nWWW: TCP/IP上で動くプロトコルであるHTTPを利用してテキストや画像、音声などのデータを転送する\nEメール: さまざまな場所にある異なるコンピュータをつなぎ合わせたネットワーク"], answer: 1, explanation: "インターネットは「さまざまな場所にある異なるコンピュータをつなぎ合わせたネットワーク」自体であり、WWWやEメールなどが利用できる土壌である。WWWは「TCP/IP 上で動くプロトコルである HTTP を利用してテキストや画像、音声などのデータを転送する」、Eメールは「データの送受信にSMTPとPOP というプロトコルが使われるのが一般的」という仕組みである。"},
             {id: "c1_q3", type: "exercise", chapter: 1, text: "DNSに関する説明として正しいのは、次のどれか。", options: ["インターネット上に置かれているデータの場所を示したもの", "ネットワークにつながれたコンピュータに一意に割り振られた、12桁からなる数字の組み合わせ", "サーバーに対して特定のサービスの要求を行い、その提供を受けるようなコンピュータやアプリケーションソフトウェア", "IPアドレスを人間にとって分かりやすい文字列に変換する仕組み"], answer: 3, explanation: "DNS (Domain Name System) とは 「IPアドレスを人間にとって分かりやすい文字列に変換する仕組み」である。IPアドレスは、ネットワークにつながれたコンピュータに一意に割り振られた、12桁からなる数字の組み合わせであり、そのままでは人間にとって利用しづらいため、DNS という仕組みが必要とされる。"},
@@ -803,7 +825,6 @@
         let currentIndex = 0;
         let score = 0;
         let currentMode = '';
-        let autoNextTimeout = null; // 自動遷移タイマー用
         
         // --- データの初期化と移行 ---
         let mistakes = JSON.parse(localStorage.getItem('webLitMistakes') || '{}');
@@ -823,22 +844,24 @@
         }
         updateMenuState();
 
-        // タイマーをクリアする関数
-        function clearAutoNext() {
-            if (autoNextTimeout) {
-                clearTimeout(autoNextTimeout);
-                autoNextTimeout = null;
+        // --- 学習データのリセット ---
+        function resetAllData() {
+            if (window.confirm("これまでの正解・間違いの記録（苦手分析など）がすべて削除されます。\n本当によろしいですか？")) {
+                mistakes = {};
+                stats = {};
+                localStorage.removeItem('webLitMistakes');
+                localStorage.removeItem('webLitStats');
+                updateMenuState();
+                alert("学習データをすべてリセットしました。");
             }
         }
 
         // --- 問題の通し番号を取得する関数 ---
         function getQuestionNumber(q) {
             if (q.chapter === 0 || q.chapter === '模擬試験') {
-                // 模擬試験（1〜85問）の通し番号
                 const mocks = quizData.filter(x => x.chapter === 0 || x.chapter === '模擬試験');
                 return mocks.findIndex(x => x.id === q.id) + 1;
             } else {
-                // 第1〜6章（1〜100問）の全体通し番号
                 const chapters = quizData.filter(x => x.chapter !== 0 && x.chapter !== '模擬試験');
                 return chapters.findIndex(x => x.id === q.id) + 1;
             }
@@ -854,11 +877,105 @@
             }
         }
 
+        // --- 苦手分析レポート画面の表示 ---
+        function showAnalysis() {
+            document.getElementById('menu-view').classList.add('hidden');
+            document.getElementById('quiz-view').classList.add('hidden');
+            document.getElementById('result-view').classList.add('hidden');
+            document.getElementById('list-view').classList.add('hidden');
+            document.getElementById('analysis-view').classList.remove('hidden');
+            
+            const content = document.getElementById('analysis-content');
+            
+            // データ有無の確認
+            let hasData = false;
+            for(let id in stats) {
+                if(stats[id].correct > 0 || stats[id].wrong > 0) {
+                    hasData = true; break;
+                }
+            }
+            if(!hasData) {
+                content.innerHTML = '<p style="color: #64748b; text-align: center; margin-top: 20px;">まだ学習データがありません。<br>問題を解くとここに分析結果が表示されます。</p>';
+                return;
+            }
+
+            let chapterStats = {};
+            let questionRank = [];
+
+            // データの集計
+            quizData.forEach(q => {
+                let key = (q.chapter === 0 || q.chapter === '模擬試験') ? '模擬試験' : `第${q.chapter}章`;
+                if (!chapterStats[key]) chapterStats[key] = { correct: 0, wrong: 0, total: 0 };
+                
+                if (stats[q.id]) {
+                    chapterStats[key].correct += stats[q.id].correct;
+                    chapterStats[key].wrong += stats[q.id].wrong;
+                    chapterStats[key].total += (stats[q.id].correct + stats[q.id].wrong);
+
+                    if (stats[q.id].wrong > 0) {
+                        questionRank.push({
+                            id: q.id,
+                            label: getQuestionLabel(q),
+                            text: q.text,
+                            wrong: stats[q.id].wrong
+                        });
+                    }
+                }
+            });
+
+            // HTML生成: 章別の正答率
+            let html = '<h3 style="margin-bottom:15px;">📈 章別の正答率</h3><div style="margin-bottom:30px;">';
+            for(let key in chapterStats) {
+                let s = chapterStats[key];
+                if(s.total === 0) continue;
+                let rate = Math.round((s.correct / s.total) * 100);
+                let barColor = rate >= 80 ? 'var(--correct)' : (rate < 60 ? 'var(--incorrect)' : 'var(--primary)');
+                
+                html += `
+                    <div style="margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.95rem; margin-bottom: 2px;">
+                            <span style="font-weight: bold;">${key}</span>
+                            <span><span style="font-weight:bold; color:${barColor};">${rate}%</span> <span style="font-size:0.8rem; color:#64748b;">(${s.correct}/${s.total})</span></span>
+                        </div>
+                        <div class="bar-wrap">
+                            <div class="bar-fill" style="width: ${rate}%; background: ${barColor};"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            html += '</div>';
+
+            // HTML生成: 苦手な問題トップ5
+            questionRank.sort((a,b) => b.wrong - a.wrong); // 間違いが多い順
+            html += '<h3 style="margin-bottom:15px;">🚨 苦手な問題トップ5</h3>';
+            
+            if(questionRank.length === 0) {
+                html += '<p style="color: var(--correct); font-weight: bold;">現在、間違えた問題はありません！素晴らしいです。</p>';
+            } else {
+                let top5 = questionRank.slice(0, 5);
+                top5.forEach((q, i) => {
+                    html += `
+                        <div class="list-item" style="cursor: pointer;" onclick="startSingleQuestion('${q.id}')">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span style="font-weight: bold; color: var(--incorrect);">第${i+1}位：${q.label}</span>
+                                <span class="badge-wrong">間違い: ${q.wrong}回</span>
+                            </div>
+                            <div style="font-size: 0.9rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${q.text}</div>
+                        </div>
+                    `;
+                });
+                html += '<p style="font-size: 0.8rem; color: #64748b; margin-top: 10px;">※タップするとその問題の復習画面に遷移します。</p>';
+            }
+
+            content.innerHTML = html;
+        }
+
         // --- 問題一覧画面の表示 ---
         function showQuestionList() {
             document.getElementById('menu-view').classList.add('hidden');
             document.getElementById('quiz-view').classList.add('hidden');
             document.getElementById('result-view').classList.add('hidden');
+            document.getElementById('analysis-view').classList.add('hidden');
             document.getElementById('list-view').classList.remove('hidden');
             
             const container = document.getElementById('question-list-container');
@@ -877,7 +994,7 @@
                 
                 grouped[key].forEach((q) => {
                     const qStats = stats[q.id] || {correct: 0, wrong: 0};
-                    const num = getQuestionNumber(q); // 全体での通し番号を取得
+                    const num = getQuestionNumber(q);
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.className = 'list-item';
@@ -901,11 +1018,9 @@
             }
         }
 
-        // --- 一覧から開始（前後の順番を保持して開始） ---
+        // --- 一覧または分析画面から開始 ---
         function startSingleQuestion(questionId) {
-            // currentQueueにすべての問題を順番通りにセット
             currentQueue = [...quizData];
-            // 選択された問題から開始する
             currentIndex = currentQueue.findIndex(q => q.id === questionId);
             startQuiz('list-sequential');
         }
@@ -939,11 +1054,9 @@
         }
 
         function startQuiz(mode) {
-            clearAutoNext();
             currentMode = mode;
             score = 0;
             
-            // list-sequentialモード以外はシャッフルして0番目から開始
             if (mode !== 'review' && mode !== 'list-sequential') {
                 currentQueue = currentQueue.sort(() => Math.random() - 0.5);
                 currentIndex = 0;
@@ -954,6 +1067,7 @@
             document.getElementById('menu-view').classList.add('hidden');
             document.getElementById('list-view').classList.add('hidden');
             document.getElementById('result-view').classList.add('hidden');
+            document.getElementById('analysis-view').classList.add('hidden');
             document.getElementById('quiz-view').classList.remove('hidden');
             
             showQuestion();
@@ -961,11 +1075,9 @@
 
         // --- 問題表示 ---
         function showQuestion() {
-            clearAutoNext();
             const q = currentQueue[currentIndex];
             const qStats = stats[q.id] || { correct: 0, wrong: 0 };
             
-            // ヘッダー情報更新
             document.getElementById('chapter-qnum-text').textContent = getQuestionLabel(q);
             document.getElementById('stats-badge-correct').textContent = `正解: ${qStats.correct}回`;
             document.getElementById('stats-badge-wrong').textContent = `間違い: ${qStats.wrong}回`;
@@ -975,11 +1087,10 @@
             const btnNext = document.getElementById('btn-next');
             const btnBackToList = document.getElementById('btn-back-to-list');
 
-            // 問題一覧モード時のUI出し分け（前後移動ボタンなど）
             if (currentMode === 'list-sequential') {
                 document.getElementById('progress-text').textContent = '';
                 btnPrev.classList.remove('hidden');
-                btnPrev.disabled = (currentIndex === 0); // 最初の問題のときは前へボタンを無効化
+                btnPrev.disabled = (currentIndex === 0);
                 btnNext.textContent = (currentIndex === currentQueue.length - 1) ? '結果を見る ➔' : '次の問題 ➔';
                 btnBackToList.classList.remove('hidden');
                 btnBackHeader.setAttribute('onclick', 'returnToList(event)');
@@ -994,8 +1105,7 @@
             }
 
             document.getElementById('question-text').innerText = q.text;
-            document.getElementById('auto-next-msg').classList.add('hidden'); // メッセージを隠す
-
+            
             // ▼ 画像の表示切り替え ▼
             const imgContainer = document.getElementById('question-image-container');
             const imgElement = document.getElementById('question-image');
@@ -1010,21 +1120,19 @@
             const optionsContainer = document.getElementById('options-container');
             optionsContainer.innerHTML = '';
             
-            // ▼ 選択肢のシャッフル処理 ▼
-            // 元のインデックス（正解判定用）を保持したまま配列をコピーしてシャッフル
             let optionsWithIndex = q.options.map((optText, index) => ({
                 text: optText,
                 originalIndex: index
             }));
             
-            optionsWithIndex.sort(() => Math.random() - 0.5); // シャッフル
+            optionsWithIndex.sort(() => Math.random() - 0.5); 
             
             optionsWithIndex.forEach((opt) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'btn btn-option';
                 btn.innerText = opt.text;
-                btn.dataset.originalIndex = opt.originalIndex; // 判定用に元のインデックスを保存
+                btn.dataset.originalIndex = opt.originalIndex;
                 btn.onclick = () => handleAnswer(opt.originalIndex);
                 optionsContainer.appendChild(btn);
             });
@@ -1035,7 +1143,6 @@
 
         // --- 解答処理 ---
         function handleAnswer(selectedOriginalIndex) {
-            clearAutoNext(); // 念のためクリア
             const q = currentQueue[currentIndex];
             const isCorrect = (selectedOriginalIndex === q.answer);
             
@@ -1045,11 +1152,9 @@
                 const btnOriginalIndex = parseInt(btn.dataset.originalIndex, 10);
                 
                 if (btnOriginalIndex === q.answer) {
-                    // 正解のボタンを緑色にする
                     btn.style.backgroundColor = '#dcfce7'; 
                     btn.style.borderColor = '#22c55e';
                 } else if (btnOriginalIndex === selectedOriginalIndex && !isCorrect) {
-                    // 間違えて選んだボタンを赤色にする
                     btn.style.backgroundColor = '#fee2e2'; 
                     btn.style.borderColor = '#ef4444';
                 }
@@ -1085,21 +1190,10 @@
             document.getElementById('correct-answer-text').innerText = q.options[q.answer];
             document.getElementById('explanation-text').innerText = q.explanation;
             feedbackContainer.classList.remove('hidden');
-
-            // --- 自動遷移のセット（正解時は3秒、不正解時は解説を読めるよう6秒） ---
-            let delay = isCorrect ? 3000 : 6000;
-            const autoMsg = document.getElementById('auto-next-msg');
-            autoMsg.innerText = `※${delay/1000}秒後に自動で次へ進みます（ボタン手動操作も可能）`;
-            autoMsg.classList.remove('hidden');
-            
-            autoNextTimeout = setTimeout(() => {
-                nextQuestion();
-            }, delay);
         }
 
         // --- ナビゲーション操作 ---
         function prevQuestion() {
-            clearAutoNext();
             if (currentIndex > 0) {
                 currentIndex--;
                 showQuestion();
@@ -1107,7 +1201,6 @@
         }
 
         function nextQuestion() {
-            clearAutoNext();
             currentIndex++;
             if (currentIndex < currentQueue.length) {
                 showQuestion();
@@ -1130,7 +1223,6 @@
 
         function returnToList(event) {
             if (event) event.preventDefault();
-            clearAutoNext();
             document.getElementById('quiz-view').classList.add('hidden');
             showQuestionList();
         }
@@ -1142,10 +1234,16 @@
             updateMenuState();
         }
 
+        function returnToMenuFromAnalysis(event) {
+            if (event) event.preventDefault();
+            document.getElementById('analysis-view').classList.add('hidden');
+            document.getElementById('menu-view').classList.remove('hidden');
+            updateMenuState();
+        }
+
         function returnToMenuFromQuiz(event) {
             if (event) event.preventDefault();
             if (window.confirm("学習を中断してトップメニューに戻りますか？")) {
-                clearAutoNext();
                 document.getElementById('quiz-view').classList.add('hidden');
                 document.getElementById('menu-view').classList.remove('hidden');
                 updateMenuState();
@@ -1153,7 +1251,6 @@
         }
 
         function showResult() {
-            clearAutoNext();
             document.getElementById('quiz-view').classList.add('hidden');
             const resultView = document.getElementById('result-view');
             resultView.classList.remove('hidden');
@@ -1173,7 +1270,6 @@
 
         function returnToMenu(event) {
             if (event) event.preventDefault();
-            clearAutoNext();
             document.getElementById('result-view').classList.add('hidden');
             document.getElementById('menu-view').classList.remove('hidden');
             updateMenuState();
